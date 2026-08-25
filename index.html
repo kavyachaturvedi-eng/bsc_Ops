@@ -1,0 +1,1176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>BSC Ops Core</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --ground:#F6F5F2; --card:#FFFFFF; --ink:#1C2128; --muted:#5C6470; --line:#E3E1DB;
+  --rail:#232B3A; --rail-ink:#B9C0CF; --rail-active:#FFFFFF; --rail-hi:#2E3950;
+  --accent:#3E4F82; --accent-soft:#E8EBF4;
+  --ok:#2E7D5B; --ok-soft:#E2F0E9; --warn:#B07818; --warn-soft:#F7EDD8; --crit:#B3432B; --crit-soft:#F6E2DC;
+  --assum:#6B5CA5; --assum-soft:#EDE9F6;
+  --mono:'JetBrains Mono',ui-monospace,monospace; --ui:'Archivo',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ui);background:var(--ground);color:var(--ink);font-size:14px;line-height:1.45}
+button{font-family:var(--ui);cursor:pointer;border:none;background:none;font-size:13px}
+.app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+/* ---------- top bar ---------- */
+.topbar{display:flex;align-items:center;gap:16px;height:52px;padding:0 16px;background:var(--card);border-bottom:1px solid var(--line);flex-shrink:0}
+.brand{display:flex;align-items:baseline;gap:8px;white-space:nowrap}
+.brand b{font-size:15px;font-weight:700;letter-spacing:.01em}
+.brand span{font-size:10px;font-weight:600;letter-spacing:.09em;color:var(--assum);border:1px solid var(--assum);border-radius:3px;padding:1px 5px}
+.portals{display:flex;gap:2px;background:var(--ground);border:1px solid var(--line);border-radius:8px;padding:3px}
+.portals button{padding:5px 12px;border-radius:6px;font-weight:600;color:var(--muted)}
+.portals button.on{background:var(--rail);color:#fff}
+.pills{display:flex;gap:8px;margin-left:auto;align-items:center}
+.pill{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--muted);background:var(--ground);border:1px solid var(--line);border-radius:20px;padding:4px 11px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.dot.amber{background:var(--warn)}
+.assum-toggle{font-weight:600;color:var(--assum);background:var(--assum-soft);border:1px solid #D6CEEB;border-radius:20px;padding:4px 12px}
+.assum-toggle.on{background:var(--assum);color:#fff}
+
+/* ---------- layout ---------- */
+.main{display:flex;flex:1;min-height:0}
+.rail{width:236px;background:var(--rail);color:var(--rail-ink);overflow-y:auto;flex-shrink:0;padding:10px 0 30px}
+.rail::-webkit-scrollbar{width:0}
+.mod>button{display:flex;align-items:center;width:100%;padding:9px 16px;color:var(--rail-ink);font-weight:600;font-size:13px;text-align:left;gap:8px}
+.mod>button:hover{color:#fff}
+.mod .chev{margin-left:auto;transition:transform .15s;font-size:10px;opacity:.6}
+.mod.open .chev{transform:rotate(90deg)}
+.sub{display:none;padding:2px 0 6px}
+.mod.open .sub{display:block}
+.sub button{display:block;width:100%;text-align:left;padding:6px 16px 6px 34px;color:var(--rail-ink);font-size:12.5px;border-left:2px solid transparent}
+.sub button:hover{color:#fff}
+.sub button.on{color:var(--rail-active);background:var(--rail-hi);border-left-color:#8FA3D9;font-weight:600}
+.rail .grp{padding:14px 16px 4px;font-size:10px;font-weight:700;letter-spacing:.12em;color:#6E7A93}
+.sec{margin-top:15px;position:relative}
+.sec::before{content:"";position:absolute;left:8px;top:30px;bottom:6px;width:2px;border-radius:2px;background:#39435C}
+.sec.mtm::before{background:#4C8494}
+.sec.rtw::before{background:#9A6B36}
+.sechead{padding:7px 16px 7px;font-size:10.5px;font-weight:800;letter-spacing:.11em;color:#6E7A93}
+.sechead span{display:block;font-size:9.5px;font-weight:600;letter-spacing:.02em;text-transform:none;opacity:.62;margin-top:2px}
+.sec.mtm .sechead{color:#7FC3D3}
+.sec.rtw .sechead{color:#D9A468}
+.mod>button.lvl1{font-size:13px}
+.mod>button.lvl1.on1{color:#fff}
+.mod>button.lvl2{padding:8px 16px 8px 22px;font-size:12.5px;font-weight:600}
+.sec .sub button{padding-left:38px}
+
+/* ---------- content ---------- */
+.content{flex:1;overflow-y:auto;padding:22px 26px 60px}
+.vhead{margin-bottom:16px}
+.vhead h1{font-size:20px;font-weight:700;letter-spacing:-.01em}
+.vhead p{color:var(--muted);font-size:13px;margin-top:3px;max-width:70ch}
+.crumb{font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:18px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer}
+.kpi:hover{border-color:var(--accent)}
+.kpi b{display:block;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.kpi span{font-size:12px;color:var(--muted)}
+.kpi.crit b{color:var(--crit)} .kpi.warn b{color:var(--warn)} .kpi.ok b{color:var(--ok)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;margin-bottom:16px;overflow:hidden}
+.card .chead{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line)}
+.card .chead h2{font-size:14px;font-weight:700}
+.card .chead .right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);text-align:left;padding:8px 14px;border-bottom:1px solid var(--line);white-space:nowrap;background:#FBFAF8}
+td{padding:9px 14px;border-bottom:1px solid #EFEDE8;vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr.rowlink:hover td{background:#F7F8FB;cursor:pointer}
+td .sub2{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
+.code{font-family:var(--mono);font-size:12px;font-weight:600}
+.codelink{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--accent);border-bottom:1px dotted var(--accent);cursor:pointer}
+.codelink:hover{background:var(--accent-soft)}
+.fabsearch{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px}
+.fabsearch input{width:100%;font-family:var(--ui);font-size:13.5px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--ground);color:var(--ink)}
+.fabsearch input:focus{outline:2px solid var(--accent);outline-offset:1px;background:var(--card)}
+.fabres{display:grid;gap:4px;margin-top:9px;max-height:196px;overflow-y:auto}
+.fabopt{display:grid;grid-template-columns:150px 1fr 110px 120px;gap:10px;align-items:center;text-align:left;padding:7px 10px;border-radius:7px;border:1px solid transparent}
+.fabopt:hover{background:var(--ground);border-color:var(--line)}
+.fabopt.on{background:var(--accent-soft);border-color:var(--accent);font-weight:600}
+.fabhint{font-size:11.5px;color:var(--muted);margin-top:8px}
+.spine{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.09em;border-radius:4px;padding:2px 7px;margin-bottom:7px}
+.sp-mtm{background:#E4EEF0;color:#1F6070}
+.sp-rtw{background:#F2EAE2;color:#8A5A2B}
+.sp-both{background:#EAEAF2;color:#4A4A6A}
+.rail .grp.mtm{color:#7FC3D3}
+.rail .grp.rtw{color:#D9A468}
+@media(max-width:900px){.fabopt{grid-template-columns:1fr;gap:2px}}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+th.num{text-align:right}
+
+.badge{display:inline-block;font-size:11px;font-weight:600;border-radius:12px;padding:2px 9px;white-space:nowrap}
+.b-ok{background:var(--ok-soft);color:var(--ok)} .b-warn{background:var(--warn-soft);color:var(--warn)}
+.b-crit{background:var(--crit-soft);color:var(--crit)} .b-mut{background:#EEECE7;color:var(--muted)}
+.b-acc{background:var(--accent-soft);color:var(--accent)}
+.chip{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;color:var(--assum);background:var(--assum-soft);border:1px dashed #C9BEE6;border-radius:4px;padding:1px 5px;margin-left:6px;cursor:help;vertical-align:1px}
+body.hi-assum .chip{background:var(--assum);color:#fff;border-style:solid}
+
+.btn{border-radius:7px;padding:6px 13px;font-weight:600;font-size:12.5px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#33436F;color:#fff}
+.btn.ok{background:var(--ok);border-color:var(--ok);color:#fff}
+.btn.ghost-crit{color:var(--crit);border-color:#E4C4BB}
+.btn.sm{padding:4px 10px;font-size:12px}
+
+.note{background:var(--assum-soft);border:1px solid #DDD4EF;border-radius:10px;padding:10px 14px;font-size:12.5px;color:#4A3F73;margin-bottom:16px}
+.note b{font-weight:700}
+
+/* proposal cards */
+.props{display:grid;gap:10px}
+.prop{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;grid-template-columns:1fr auto;gap:8px}
+.prop .why{font-size:12.5px;color:var(--muted);margin-top:4px;max-width:75ch}
+.prop .acts{display:flex;gap:8px;align-items:flex-start}
+.prop .val{font-family:var(--mono);font-size:12px;color:var(--ink);background:var(--ground);border-radius:6px;padding:2px 8px;margin-left:8px}
+.prop.decided{opacity:.62}
+
+/* TNA */
+.tna{display:flex;gap:4px;align-items:center}
+.tna i{width:22px;height:8px;border-radius:4px;background:#E3E1DB}
+.tna i.d{background:var(--ok)} .tna i.due{background:var(--warn)} .tna i.slip{background:var(--crit)}
+
+/* timeline (samples) */
+.vtl{padding:14px 18px}
+.vrow{display:flex;gap:14px;padding:10px 0;border-bottom:1px dashed var(--line)}
+.vrow:last-child{border-bottom:none}
+.vtag{font-family:var(--mono);font-weight:600;font-size:12px;background:var(--accent-soft);color:var(--accent);border-radius:6px;padding:3px 8px;height:fit-content;white-space:nowrap}
+.vtag.ok{background:var(--ok-soft);color:var(--ok)}
+
+/* store app phone */
+.phonewrap{display:flex;gap:26px;align-items:flex-start;flex-wrap:wrap}
+.phone{width:340px;background:var(--card);border:1px solid var(--line);border-radius:26px;padding:14px;box-shadow:0 12px 32px rgba(28,33,40,.10);flex-shrink:0}
+.phone .ph-head{display:flex;align-items:center;gap:8px;padding:6px 8px 12px}
+.phone .ph-head b{font-size:14px}
+.ph-body{background:var(--ground);border-radius:16px;padding:14px;min-height:420px}
+.ph-step h3{font-size:13.5px;font-weight:700;margin-bottom:8px}
+.ph-item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px;font-size:12.5px}
+.ph-item b{display:block;font-size:12.5px}
+.ph-btn{display:block;width:100%;text-align:center;background:var(--accent);color:#fff;font-weight:600;border-radius:10px;padding:10px;margin-top:10px}
+.ph-btn.ghost{background:var(--card);color:var(--accent);border:1px solid var(--accent)}
+.scanbox{border:2px dashed #B9C0CF;border-radius:12px;height:110px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:12px;background:repeating-linear-gradient(45deg,#FDFDFC,#FDFDFC 8px,#F4F3EF 8px,#F4F3EF 16px)}
+.avail{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:6px 2px}
+.avail b{font-variant-numeric:tabular-nums}
+
+/* toast */
+.toast{position:fixed;bottom:22px;right:22px;background:var(--rail);color:#fff;border-radius:10px;padding:11px 16px;font-size:13px;box-shadow:0 10px 26px rgba(0,0,0,.25);opacity:0;transform:translateY(8px);transition:.25s;z-index:60;max-width:340px}
+.toast.show{opacity:1;transform:none}
+
+/* matrix */
+.mx td,.mx th{text-align:center;padding:7px 8px}
+.mx td:first-child,.mx th:first-child{text-align:left;font-weight:600}
+.mx .rw{color:var(--ok);font-weight:700}.mx .ro{color:var(--muted)}.mx .na{color:#C9C6BF}.mx .ap{color:var(--accent);font-weight:700}
+
+/* feed */
+.feed{list-style:none;padding:6px 0}
+.feed li{display:flex;gap:12px;padding:8px 16px;border-bottom:1px solid #EFEDE8;font-size:12.5px;align-items:baseline}
+.feed li:last-child{border-bottom:none}
+.feed .t{font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap;width:58px}
+.feed .dir{font-size:10px;font-weight:700;letter-spacing:.06em;border-radius:4px;padding:1px 6px}
+.feed .in{background:var(--ok-soft);color:var(--ok)} .feed .out{background:var(--accent-soft);color:var(--accent)}
+
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:1100px){.two{grid-template-columns:1fr}}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mini{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px}
+.mini h4{font-size:12px;font-weight:700;margin-bottom:6px}
+.mini .row{display:flex;justify-content:space-between;padding:3px 0;color:var(--muted)}
+.mini .row b{color:var(--ink);font-variant-numeric:tabular-nums}
+.footer-note{font-size:11.5px;color:var(--muted);margin-top:26px;border-top:1px solid var(--line);padding-top:10px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+
+<div class="app">
+  <div class="topbar">
+    <div class="brand"><b>BSC Ops Core</b></div>
+    <div class="portals" id="portals"></div>
+    <div class="pills">
+      <div class="pill" id="pillEnigma"><span class="dot"></span>Enigma · synced 4 min ago</div>
+      <div class="pill"><span class="dot amber"></span>Shopify · daily 02:00</div>
+    </div>
+  </div>
+  <div class="main">
+    <nav class="rail" id="rail"></nav>
+    <div class="content" id="content"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= ASSUMPTIONS (mirror of the register sheet) ================= */
+const ASSUM = {
+ "A-01":"New code grammar (CTN-PPL-0412) is go-forward; legacy codes become aliases.",
+ "A-02":"One canonical store list (~30); file variants become aliases.",
+ "A-03":"Incomplete mandatory fields block channel go-live (hard gate).",
+ "A-04":"Healthy = coverage ≥ 2 lead times AND ≥80% size availability.",
+ "A-05":"ROS computed on in-stock weeks only, per size and store.",
+ "A-06":"Coverage alert fires one lead time + 1 week before stock-out.",
+ "A-07":"Lost sales captured at counter in 2 taps, counted into demand.",
+ "A-08":"Promote-to-core proposed at ≥1.5× category-median ROS over 4 in-stock weeks.",
+ "A-09":"Liquidation proposed at 120 days age or <40% size completeness.",
+ "A-10":"Default block window 60 days where vendor window unknown.",
+ "A-11":"One threshold field lives here, pushed to Enigma.",
+ "A-12":"Fabric intake form replaces the ordering sheet; one approval before PO.",
+ "A-13":"Mill availability ingested daily; option auto-hides at zero.",
+ "A-14":"Availability-only mills: orders above 25 m need manual confirmation.",
+ "A-15":"Trims & packaging on one vendor master; Sourcing procures, factory consumes via job cards.",
+ "A-16":"Samples in versioned rounds; factory sees only latest approved.",
+ "A-17":"Consumption rule needs a second-person check before activation.",
+ "A-18":"Category / sub / colour / fit come from controlled lists.",
+ "A-19":"Marketing self-serves name, description, images 15 days pre-launch.",
+ "A-20":"Six TNA milestones per PO: fabric in-house, cutting, stitching, QC, dispatch, GRN.",
+ "A-21":"Vendors confirm dates in a thin portal; fallback = entered from email.",
+ "A-22":"RAS above ₹2,00,000 delta needs finance re-approval.",
+ "A-23":"QC as per-batch checklist with photos (later slice).",
+ "A-24":"Barcode on every piece, QR on every swatch sticker; scans at 4 nodes.",
+ "A-25":"STO closes on receiving scan; unscanned 48 h raises an alert.",
+ "A-26":"Hemming in/out scans; dwell >5 days flags.",
+ "A-27":"Damage is scanned out on the floor; leaves sale instantly.",
+ "A-28":"Swatch dispatches need receipt confirmation within 72 h.",
+ "A-29":"Stores see live saleable = physical − reserved − threshold, read from Enigma.",
+ "A-30":"One order entry flows to Shopify (billing) and Enigma (production).",
+ "A-31":"Tailor adjustment beyond ±2\" or pattern-match fabric triggers consumption recheck.",
+ "A-32":"Returns are status cases: store → factory → resolution, visible end to end.",
+ "A-33":"Cost/SKU = fabric + making + shipping + hemming + trims on the record.",
+ "A-34":"Working capital computed from live PO ledger incl. PDC dates.",
+ "A-35":"Commitments above ₹5,00,000 require budget-fit approval.",
+ "A-36":"Order qty per option taken from PO quantities → sell-through computable.",
+ "A-37":"Enigma read every 15 minutes via API (THE open gate — due Call 5).",
+ "A-38":"Identity pushed Ops Core → Enigma → Shopify; Enigma stays the channel gate.",
+ "A-39":"Shopify sales read daily as the demand signal.",
+ "A-40":"Eight roles with the drafted rights matrix.",
+ "A-41":"MTM fabric is replenishable stock (metres, threshold, coverage). RTW fabric is bought per production run and consumed — no threshold, no reorder.",
+ "A-42":"The spines share only the fabric code, the vendor/store masters and the launch calendar — NOT a stock pool.",
+ "A-43":"MTM is measured in metres, RTW in pieces (one discovery note says the opposite — please settle it)."
+};
+
+/* ================= NAV ================= */
+const NAV = [
+ {id:"cockpit", label:"Cockpit", solo:true},
+ {id:"spines", label:"How the two spines split", solo:true},
+ {id:"proposals", label:"Proposal Queue", solo:true},
+
+ {sec:"MTM", note:"Fabric is the product · metres", cls:"mtm", groups:[
+   {id:"mtm_m", label:"Masters", kids:[["mtm_master","Fabric Master"],["fab360","Fabric 360 · drill-down"],["mtm_custom","Customisation & Consumption"]]},
+   {id:"mtm_s", label:"Sourcing", kids:[["mtm_intake","Fabric Intake"],["mtm_blocks","Block Register"],["mtm_mills","Bespoke Mill Feeds"]]},
+   {id:"mtm_p", label:"Planning", kids:[["mtm_repl","Replenishment · metres"]]},
+   {id:"mtm_o", label:"Operations", kids:[["mtm_swatch","Swatch Books & Displays"]]},
+ ]},
+
+ {sec:"RTW", note:"Garment × size is the product · pieces", cls:"rtw", groups:[
+   {id:"rtw_m", label:"Masters", kids:[["rtw_style","Style Master"],["style360","Style 360 · drill-down"]]},
+   {id:"rtw_p", label:"Planning", kids:[["rtw_plan","Option Plan & Slots"],["rtw_repl","Replenishment · pieces"],["rtw_sizes","Size Ratios"],["rtw_life","Non-core Lifecycle"]]},
+   {id:"rtw_pp", label:"Pre-production", kids:[["rtw_bom","BOM · fabric & trims per run"],["rtw_sample","Sampling Rounds"],["rtw_tna","PO Board · TNA & RAS"],["rtw_qc","QC & Vendor Score"]]},
+ ]},
+
+ {sec:"SHARED", note:"Used by both spines", cls:"sh", groups:[
+   {id:"sh_m", label:"Masters", kids:[["m_vendors","Vendors & Mills"],["m_stores","Stores"],["m_trims","Trims & Packaging"],["m_naming","Naming & Aliases"]]},
+   {id:"sh_o", label:"Operations", kids:[["l_inward","Goods Inward"],["l_hemming","Hemming Tracker"],["l_sto","Allocation & STOs"],["l_pullback","Pull-backs"],["returns","Returns & Service"],["lost","Lost Sales"]]},
+   {id:"sh_f", label:"Finance", kids:[["f_cogs","Cost per SKU"],["f_margin","Margin Working"],["f_wc","Working Capital"],["f_budget","Budget-Fit Approvals"]]},
+   {id:"sh_i", label:"Intelligence", kids:[["i_health","Option Health"],["i_sell","Sell-through"],["i_age","Ageing & Liquidation"],["i_feedback","Store Feedback"]]},
+   {id:"sh_x", label:"Integrations", kids:[["x_enigma","Enigma Sync"],["x_shopify","Shopify Sync"],["x_writer","One Writer per Field"]]},
+   {id:"sh_a", label:"Admin", kids:[["a_roles","Roles & Permissions"],["a_rules","Rules & Thresholds"],["a_audit","Audit Log"]]},
+ ]},
+];
+const PORTALS = [["ops","Ops Core"],["store","Store App"],["vendor","Vendor & Mill Portal"]];
+
+/* ================= HELPERS ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+const chip = id => `<span class="chip" title="${esc(ASSUM[id]||"")}">${id}</span>`;
+const badge = (t,k) => `<span class="badge b-${k}">${t}</span>`;
+let toastT;
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.classList.add("show"); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove("show"),2600); }
+function vhead(crumb,h,p,sp){
+ const tag = sp==="mtm"?'<div><span class="spine sp-mtm">MTM SPINE · METRES</span></div>'
+   : sp==="rtw"?'<div><span class="spine sp-rtw">RTW SPINE · PIECES</span></div>'
+   : sp==="both"?'<div><span class="spine sp-both">SHARED BY BOTH SPINES</span></div>':'';
+ return `<div class="vhead">${tag}<div class="crumb">${crumb}</div><h1>${h}</h1>${p?`<p>${p}</p>`:""}</div>`; }
+function card(title, inner, right=""){ return `<div class="card"><div class="chead"><h2>${title}</h2><div class="right">${right}</div></div>${inner}</div>`; }
+function tbl(cols, rows){ return `<div class="tblwrap"><table><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${c.h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
+
+/* ================= SHARED DATA ================= */
+const enigmaFeed = [
+ ["10:42","IN","Stock read · 4,112 fabric rows, 1,872 SKU rows · 0 conflicts"],
+ ["10:38","IN","Order ORD-88231 reserved 1.7 m of CTN-PPL-0412 (Kala Ghoda)"],
+ ["10:27","OUT","Threshold update pushed · LIN-SOL-0233 → 220 m"],
+ ["10:15","IN","GRN 5521 posted · PO-2189 closed · +800 m CTN-STR-0388"],
+ ["09:58","OUT","New option RTW-SHT-027 pushed with mandatory fields complete"],
+ ["09:45","IN","Stock read · 4,109 fabric rows · 0 conflicts"],
+];
+let pendingProps = 7;
+
+/* ================= VIEWS ================= */
+const V = {};
+
+/* ---------- COCKPIT ---------- */
+V.cockpit = () => vhead("Ops Core","Cockpit","Everything that needs a decision today, in one place. Every number is clickable.") + `
+ <div class="kpis">
+  <div class="kpi warn" onclick="go('proposals')"><b id="kpiProps">${pendingProps}</b><span>proposals awaiting decision</span></div>
+  <div class="kpi crit" onclick="go('s_blocks')"><b>3</b><span>blocks expiring ≤ 7 days</span></div>
+  <div class="kpi crit" onclick="go('pr_pos')"><b>2</b><span>POs slipping vs TNA</span></div>
+  <div class="kpi warn" onclick="go('l_sto')"><b>4</b><span>STOs unconfirmed &gt; 48 h ${chip("A-25")}</span></div>
+  <div class="kpi" onclick="go('p_lost')"><b>12</b><span>lost sales captured this week ${chip("A-07")}</span></div>
+  <div class="kpi warn" onclick="go('p_coverage')"><b>9</b><span>SKUs below coverage line</span></div>
+ </div>` +
+ card("Alert queue — today", tbl(
+  [{h:"Alert"},{h:"Where"},{h:"Owner"},{h:"Severity"},{h:""}],
+  [
+   [`Block <span class="code">BLK-118</span> (Sage Linen, Soktas) expires in 3 days`,"Sourcing · Block Register","Sourcing", badge("Critical","crit"), `<button class="btn sm" onclick="go('s_blocks')">Open</button>`],
+   [`PO-2201 stitching milestone slipped 4 days (Arvind)`,"Production · TNA","Production", badge("Critical","crit"), `<button class="btn sm" onclick="go('pr_pos')">Open</button>`],
+   [`CTN-PPL-0412 White Poplin coverage 9 days vs 21-day lead ${chip("A-06")}`,"Planning · Coverage","Planner", badge("Warning","warn"), `<button class="btn sm" onclick="go('p_coverage')">Open</button>`],
+   [`Thomas Mason reported TM-4408 sold out — option auto-hidden ${chip("A-13")}`,"Sourcing · Mill Feeds","—", badge("Handled","ok"), `<button class="btn sm" onclick="go('s_mills')">Open</button>`],
+   [`STO-0921 to Khan Market unscanned for 52 h`,"Last Mile · STOs","Warehouse", badge("Warning","warn"), `<button class="btn sm" onclick="go('l_sto')">Open</button>`],
+  ]));
+
+/* ---------- PROPOSALS ---------- */
+const PROPS = [
+ {sp:"mtm", t:"Reorder", opt:"<span class=\"codelink\" onclick=\"go('fab360')\">CTN-PPL-0412</span> · White Poplin 2/140", val:"700 m", why:"Saleable 221 m ÷ true ROS 172 m/wk = <b>9 days cover</b>, against a 21-day lead. Working: 4 weeks to cover (21 d lead + 7 d review) × 172 = 688 m, + 200 m threshold = 888 m target, − 221 m saleable − 0 open PO = 667 m, rounded up to Arvind's 100 m increments = <b>700 m</b>.", chips:["A-05","A-06"]},
+ {sp:"rtw", t:"Reorder", opt:"RTW-SHT-021 · Oxford BD White · sizes M, L", val:"240 pc", why:"M and L below 1 lead time. Style ROS healthy when in stock — do not let it die broken.", chips:["A-05"]},
+ {sp:"rtw", t:"Promote to core", opt:"RTW-CHN-009 · Chino Sand", val:"", why:"ROS 1.8× category median across 4 in-stock weeks. Promoting adds it to auto-replenishment.", chips:["A-08"]},
+ {sp:"rtw", t:"Liquidate", opt:"RTW-SHT-014 · Cuban Collar Print", val:"312 pc", why:"131 days old, size completeness 33% (only XS/XXL). Proposal: pull from displays + mark down.", chips:["A-09"]},
+ {sp:"mtm", t:"Fill the slot", opt:"Houndstooth family · 4 of 6 slots filled", val:"2 options", why:"Family plan says 6. Two slots empty for 3 weeks — sourcing brief suggested.", chips:[]},
+ {sp:"mtm", t:"Pull-back", opt:"Display: LIN-SOL-0233 Sage Linen @ 3 stores", val:"", why:"Fabric sold out at mill; display still on walls at Bandra, Indiranagar, UB City.", chips:["A-13","A-28"]},
+ {sp:"rtw", t:"Hold", opt:"PO draft · TWL-CHN-0455 Khaki Twill", val:"800 m", why:"Ageing shows 240 m unconsumed of same quality. Hold until cutting plan confirms.", chips:[]},
+];
+V.proposals = () => vhead("Ops Core","Proposal Queue","The system proposes; a person decides. Every decision is recorded with its reason. Each card is tagged with the spine it belongs to — MTM proposals are about metres, RTW proposals about pieces.", "both") +
+ `<div class="props">` + PROPS.map((p,i)=>`
+  <div class="prop" id="prop${i}">
+   <div><b><span class="spine sp-${p.sp}" style="margin:0 6px 0 0">${p.sp.toUpperCase()}</span>${badge(p.t, p.t==="Liquidate"||p.t==="Pull-back"?"crit":p.t==="Reorder"?"acc":"warn")} <span style="font-weight:600">${p.opt}</span>${p.val?`<span class="val">${p.val}</span>`:""}${p.chips.map(chip).join("")}</b>
+   <div class="why">${p.why}</div></div>
+   <div class="acts" id="acts${i}">
+    <button class="btn ok sm" onclick="decide(${i},'Approved')">Approve</button>
+    <button class="btn sm" onclick="decide(${i},'Edited & approved')">Edit qty</button>
+    <button class="btn ghost-crit sm" onclick="decide(${i},'Rejected')">Reject</button>
+   </div>
+  </div>`).join("") + `</div>`;
+function decide(i, verdict){
+ const el = document.getElementById("acts"+i);
+ el.innerHTML = badge(verdict, verdict==="Rejected"?"crit":"ok") + `<span style="font-size:11.5px;color:var(--muted)">by Planner · reason logged</span>`;
+ document.getElementById("prop"+i).classList.add("decided");
+ pendingProps--; toast(verdict+" — decision recorded with reason");
+}
+
+/* ---------- MASTERS ---------- */
+V.m_products = () => vhead("RTW Pre-production","Style Master · pieces","Created once, pushed everywhere. The hard gate: incomplete mandatory fields cannot go live on any channel."+chip("A-03"), "rtw") +
+ card("Product master · RTW + MTM options", tbl(
+  [{h:"Design code"},{h:"Name"},{h:"Category / Fit"},{h:"Fabric"},{h:"MRP",num:1},{h:"Lifecycle"},{h:"Channels"}],
+  [
+   [`<span class="code">RTW-SHT-021</span>`,`Oxford Button-Down<span class="sub2">White · launched 02 May 26</span>`,"RTW Shirts · Standard",`<span class="code">CTN-OXF-0301</span>`,"3,900",badge("Live","ok"),"Web · POS · Stores"],
+   [`<span class="code">RTW-CHN-009</span>`,`Chino<span class="sub2">Sand · launched 14 Mar 26</span>`,"RTW Bottoms · Slim",`<span class="code">TWL-CHN-0455</span>`,"4,500",badge("Live","ok"),"Web · POS · Stores"],
+   [`<span class="code">MTM-OPT-1104</span>`,`Cutaway Collar Option<span class="sub2">customisation · all fabrics</span>`,"MTM · Collars","—","+0",badge("Live","ok"),"Stores"],
+   [`<span class="code">RTW-SHT-027</span>`,`Flannel Overshirt<span class="sub2">Moss · drop OCT-26</span>`,"RTW Shirts · Relaxed",`<span class="code">FLN-MOS-0512</span>`,"5,200",badge("Blocked: 2 fields missing","crit")+chip("A-03"),"—"],
+   [`<span class="code">RTW-SHT-014</span>`,`Cuban Collar Print<span class="sub2">seasonal · drop MAY-26</span>`,"RTW Shirts · Relaxed",`<span class="code">VSC-PRT-0209</span>`,"3,400",badge("Liquidation proposed","warn"),"Web · Stores"],
+  ]), `<button class="btn primary sm" onclick="toast('New product wizard — controlled vocabulary enforced at every field')">+ New product</button>`);
+V.m_fabrics = () => vhead("MTM Fabric","Fabric Master · metres",
+ "MTM only. Here fabric IS the product, held in metres, with a threshold and a reorder. RTW fabric is not in this list — it lives on a BOM against one production run. Click any underlined code for its Fabric 360."+chip("A-41"), "mtm") +
+ `<div class="note">Stock truth is read from Enigma every 15 minutes and never typed here. ${chip("A-29")}</div>` +
+ card("Fabric master", tbl(
+  [{h:"Fabric code"},{h:"Name / composition"},{h:"Bucket"},{h:"Vendor"},{h:"Physical m",num:1},{h:"Reserved",num:1},{h:"Threshold",num:1},{h:"Saleable",num:1},{h:"State"}],
+  [
+   [`<span class="codelink" onclick="go('fab360')" title="Open Fabric 360 — every number in one place">CTN-PPL-0412</span><span class="sub2 code">alias FAB/2019/336</span>`+chip("A-01"),"White Poplin 2/140 · 100% cotton","MTM Core","Arvind Mills","482","61","200","221",badge("Reorder proposed","warn")],
+   [`<span class="code">LIN-SOL-0233</span>`,"Sage Linen · 100% linen","MTM Non-core","Soktas","118","22","60","36",badge("Low","warn")],
+   [`<span class="code">TM-4408</span>`,"Sky End-on-End · Thomas Mason","Bespoke (mill stock)","Thomas Mason","—","—","—","—",badge("Hidden — mill sold out","crit")+chip("A-13")],
+   [`<span class="code">CTN-HND-0107</span>`,"Navy Houndstooth","MTM Non-core","Vardhman","260","18","80","162",badge("Live","ok")],
+   [`<span class="code">CTN-STR-0388</span>`,"Butcher Stripe","MTM Core","Arvind Mills","1,240","95","300","845",badge("Live","ok")],
+  ]));
+V.m_vendors = () => vhead("Masters","Vendors & Mills","Fabric, trims and packaging vendors on one master — with the numbers that drive every trigger: lead time, MOQ, block window."+chip("A-10")+chip("A-15"), "both") +
+ card("Vendor master", tbl(
+  [{h:"Vendor"},{h:"Type"},{h:"Supplies"},{h:"Lead time",num:1},{h:"MOQ",num:1},{h:"Block window",num:1},{h:"Reliability"},{h:"Portal"}],
+  [
+   ["Arvind Mills","Domestic mill","Core cottons","21 d","500 m","90 d","96% on-time",badge("Active","ok")],
+   ["Soktas","Domestic mill","Linens, fancies","28 d","300 m","60 d "+chip("A-10"),"88%",badge("Active","ok")],
+   ["Thomas Mason","Bespoke mill (IT)","Premium shirting","—","cut length","—","availability only "+chip("A-14"),badge("Feed only","mut")],
+   ["Albini","Bespoke mill (IT)","Premium shirting","—","cut length","—","availability only",badge("Feed only","mut")],
+   ["Shree Trims Co","Trims","Buttons, zips, interlining","10 d","5,000 pc","—","94%",badge("Active","ok")],
+   ["PackRight","Packaging","Boxes, covers","7 d","2,000 pc","—","98%",badge("Active","ok")],
+  ]));
+V.m_stores = () => vhead("Masters","Stores","The canonical list. Every name variant found in the files is kept as an alias so history still joins."+chip("A-02"), "both") +
+ card("Store master", tbl(
+  [{h:"Store"},{h:"Region"},{h:"Formats"},{h:"Aliases found in files"},{h:"Devices"},{h:"State"}],
+  [
+   ["Kala Ghoda Flagship","West","MTM + RTW",`<span class="code">KG / KalaGhoda / BSC-Fort</span>`,"2 tablets · 1 scanner",badge("Live","ok")],
+   ["Bandra","West","MTM + RTW",`<span class="code">BND / Bandra W</span>`,"1 tablet",badge("Live","ok")],
+   ["Khan Market","North","MTM + RTW",`<span class="code">KM / KhanMkt</span>`,"1 tablet · 1 scanner",badge("Live","ok")],
+   ["Indiranagar","South","MTM + RTW",`<span class="code">IND / Indira Nagar</span>`,"1 tablet",badge("Live","ok")],
+   ["Jubilee Hills","South","MTM",`<span class="code">JH</span>`,"1 tablet",badge("Live","ok")],
+  ]));
+V.m_naming = () => vhead("Masters","Naming & Aliases","Free text is where the data went bad. Creation now runs on controlled lists; the old spellings resolve through aliases instead of corrupting reports."+chip("A-18"), "both") +
+ V.two(
+  card("Controlled vocabulary", tbl([{h:"Field"},{h:"Allowed values (extract)"}],[
+   ["Category","RTW Shirts · RTW Bottoms · RTW Outerwear · MTM"],
+   ["Fit","Slim · Standard · Relaxed"],
+   ["Colour","ISO list · no free text"],
+   ["Fabric family","Poplin · Oxford · Linen · Twill · Flannel · Stripe · Check"]])),
+  card("Alias resolution (live examples)", tbl([{h:"As found in files"},{h:"Resolves to"}],[
+   [`<span class="code">flat knit</span> / <span class="code">contrast flat knit</span>`,`<span class="code">KNT-FLT-*</span> single family`],
+   [`<span class="code">FAB/2019/336</span> (legacy)`,`<span class="codelink" onclick="go('fab360')" title="Open Fabric 360 — every number in one place">CTN-PPL-0412</span>`+chip("A-01")],
+   [`<span class="code">Indira Nagar</span> / <span class="code">IND</span>`,"Indiranagar"]])));
+V.two = (a,b)=>`<div class="two">${a}${b}</div>`;
+
+/* ---------- FABRIC 360 · searchable drill-down ---------- */
+const FABRICS = {
+ "CTN-PPL-0412":{name:"White Poplin 2/140",comp:"100% cotton · 2/140 · 150 cm",bucket:"MTM Core",
+  alias:"FAB/2019/336",vendor:"Arvind Mills",lead:21,roll:100,consumption:"1.60 m (+8% on checks)",
+  physical:482,reserved:61,threshold:200,onOrder:0,
+  weeks:[["W-8","in stock all week",168,1],["W-7","in stock all week",181,1],["W-6","SOLD OUT — 6 of 7 days",22,0],
+         ["W-5","SOLD OUT — all week",0,0],["W-4","in stock all week",175,1],["W-3","in stock all week",166,1],
+         ["W-2","in stock all week",178,1],["W-1","in stock all week",169,1]],
+  pos:[["PO-2189","800 m","received 15 Aug","GRN closed","ok"]],
+  presence:[["Swatch books","Formal Vol.1 p.12 · Formal Vol.3 p.4"],["Store displays","Kala Ghoda · Khan Market"],
+            ["Used by styles","MTM shirts · RTW-SHT-021"],["Blocks","none active"]],
+  decisions:[["today 10:44","system","Reorder proposal raised","cover below trigger line"],
+             ["02 Aug","Planner","Threshold raised 180 → 200 m","festival uplift expected Oct"],
+             ["21 Jul","Sourcing","PO-2189 placed · 800 m","cover had fallen to 12 d"],
+             ["14 Jun","Design","Marked active on all channels","mandatory fields complete"]]},
+
+ "LIN-SOL-0233":{name:"Sage Linen",comp:"100% linen · 145 cm",bucket:"MTM Non-core",
+  alias:"—",vendor:"Soktas",lead:28,roll:50,consumption:"1.70 m",
+  physical:118,reserved:22,threshold:60,onOrder:0,
+  weeks:[["W-8","in stock all week",31,1],["W-7","in stock all week",28,1],["W-6","in stock all week",34,1],
+         ["W-5","in stock all week",29,1],["W-4","in stock all week",33,1],["W-3","in stock all week",30,1],
+         ["W-2","in stock all week",26,1],["W-1","in stock all week",32,1]],
+  pos:[["—","—","—","nothing inbound","crit"]],
+  presence:[["Swatch books","Casual Vol.2 p.7"],["Store displays","Bandra · Indiranagar · UB City — pull-back raised"],
+            ["Used by styles","MTM shirts"],["Blocks","BLK-118 · 400 m · expires in 3 days"]],
+  decisions:[["today 09:10","system","Pull-back proposed for 3 store displays","mill reported sold out"],
+             ["18 Aug","Sourcing","Block BLK-118 placed · 400 m","non-core slot refill"],
+             ["05 Jul","Design","Selected for OCT drop","design meeting approval"]]},
+
+ "TM-4408":{name:"Sky End-on-End",comp:"Thomas Mason · 100% cotton",bucket:"MTM Bespoke",
+  alias:"—",vendor:"Thomas Mason",lead:null,roll:null,consumption:"cut length",
+  physical:null,reserved:null,threshold:null,onOrder:0,millState:"Sold out",
+  weeks:[["W-8","mill available",14,1],["W-7","mill available",11,1],["W-6","mill available",16,1],
+         ["W-5","mill available",9,1],["W-4","mill available",12,1],["W-3","mill available",15,1],
+         ["W-2","mill available",13,1],["W-1","MILL SOLD OUT",4,0]],
+  pos:[["—","—","—","BSC holds no stock — mill stock only","mut"]],
+  presence:[["Swatch books","Leggiuno Bespoke p.22"],["Store displays","none"],
+            ["Used by styles","MTM bespoke shirts"],["Blocks","not applicable"]],
+  decisions:[["today 08:11","system","Hidden on web + stores","mill reported sold out via portal"],
+             ["today 08:10","Thomas Mason","Availability posted: sold out","vendor portal"],
+             ["12 Aug","Sourcing","Added to bespoke catalogue","mill season launch"]]},
+
+ "CTN-STR-0388":{name:"Butcher Stripe",comp:"100% cotton · 148 cm",bucket:"MTM Core",
+  alias:"—",vendor:"Arvind Mills",lead:21,roll:100,consumption:"1.60 m (+8% stripe match)",
+  physical:1240,reserved:95,threshold:300,onOrder:0,
+  weeks:[["W-8","in stock all week",92,1],["W-7","in stock all week",88,1],["W-6","in stock all week",95,1],
+         ["W-5","in stock all week",90,1],["W-4","in stock all week",97,1],["W-3","in stock all week",86,1],
+         ["W-2","in stock all week",93,1],["W-1","in stock all week",91,1]],
+  pos:[["PO-2189","800 m","received 15 Aug","GRN closed","ok"]],
+  presence:[["Swatch books","Formal Vol.2 p.3"],["Store displays","Kala Ghoda"],
+            ["Used by styles","MTM shirts"],["Blocks","none active"]],
+  decisions:[["15 Aug","Warehouse","GRN 5521 · +800 m","PO-2189 closed"],
+             ["24 Jul","Planner","No action — cover healthy","routine review"]]},
+
+ "CTN-HND-0107":{name:"Navy Houndstooth",comp:"100% cotton · 150 cm",bucket:"MTM Non-core",
+  alias:"—",vendor:"Vardhman",lead:28,roll:50,consumption:"1.65 m (+8% check match)",
+  physical:260,reserved:18,threshold:80,onOrder:0,
+  weeks:[["W-8","in stock all week",22,1],["W-7","in stock all week",19,1],["W-6","in stock all week",24,1],
+         ["W-5","in stock all week",21,1],["W-4","in stock all week",18,1],["W-3","in stock all week",23,1],
+         ["W-2","in stock all week",20,1],["W-1","in stock all week",22,1]],
+  pos:[["—","—","—","nothing inbound","mut"]],
+  presence:[["Swatch books","Formal Vol.3 p.9"],["Store displays","Khan Market"],
+            ["Used by styles","MTM shirts"],["Blocks","none active"]],
+  decisions:[["today 07:00","system","Family flagged: Houndstooth 4 of 6 slots live","slot plan gap"],
+             ["30 Jun","Design","Selected for JUL drop","design meeting approval"]]},
+
+ "TWL-CHN-0455":{name:"Khaki Twill",comp:"98/2 cotton-elastane · 152 cm",bucket:"RTW fabric",
+  alias:"—",vendor:"Arvind Mills",lead:21,roll:100,consumption:"1.35 m per chino",
+  physical:640,reserved:0,threshold:150,onOrder:800,
+  weeks:[["W-8","in stock all week",41,1],["W-7","in stock all week",38,1],["W-6","in stock all week",44,1],
+         ["W-5","in stock all week",36,1],["W-4","in stock all week",40,1],["W-3","in stock all week",35,1],
+         ["W-2","in stock all week",39,1],["W-1","in stock all week",37,1]],
+  pos:[["PO draft","800 m","not released","HOLD proposed","warn"]],
+  presence:[["Swatch books","not applicable — RTW"],["Store displays","via RTW-CHN-009"],
+            ["Used by styles","RTW-CHN-009 Chino Sand"],["Blocks","none active"]],
+  decisions:[["today 10:02","system","Hold proposed on 800 m draft PO","240 m unconsumed of same quality (ageing)"],
+             ["08 Aug","Planning","Qty target set: 5,000 chinos","business plan"]]},
+};
+function excludedCount(f){ return f.weeks.filter(w=>!w[3]).length; }
+let fabSel = "CTN-PPL-0412", fabQuery = "";
+function fabPick(c){ fabSel=c; fabQuery=""; render(); }
+function fabSearch(v){ fabQuery=v; const l=document.getElementById("fabResults"); if(l) l.innerHTML = fabList(); }
+function fabList(){
+ const q = fabQuery.trim().toLowerCase();
+ const hits = Object.entries(FABRICS).filter(([c,f]) => !q || c.toLowerCase().includes(q) || f.name.toLowerCase().includes(q) || f.bucket.toLowerCase().includes(q) || f.vendor.toLowerCase().includes(q));
+ if(!hits.length) return `<div style="padding:10px 14px;color:var(--muted);font-size:12.5px">No fabric matches “${esc(fabQuery)}”. Try a code, a name, a bucket, or a vendor.</div>`;
+ return hits.map(([c,f])=>`<button class="fabopt ${c===fabSel?'on':''}" onclick="fabPick('${c}')"><span class="code">${c}</span><span>${f.name}</span><span class="badge b-mut">${f.bucket}</span><span style="color:var(--muted);font-size:11.5px">${f.vendor}</span></button>`).join("");
+}
+V.fab360 = () => {
+ const f = FABRICS[fabSel];
+ const bespoke = f.physical === null;
+ const saleable = bespoke ? null : f.physical - f.reserved - f.threshold;
+ const counted = f.weeks.filter(w=>w[3]);
+ const last4 = counted.slice(-4).map(w=>w[2]);
+ const ros = last4.reduce((a,b)=>a+b,0)/last4.length;
+ const naive = f.weeks.reduce((a,b)=>a+b[2],0)/f.weeks.length;
+ const understate = ros>0 ? Math.round((ros-naive)/ros*100) : 0;
+ const showDiff = excludedCount(f) > 0 && Math.round(ros) !== Math.round(naive) && understate >= 5;
+ const cover = (!bespoke && ros>0) ? saleable/(ros/7) : null;
+ const trigger = f.lead ? f.lead + 7 : null;
+ const fires = cover!==null && trigger!==null && cover < trigger;
+ const need = fires ? Math.ceil((ros*trigger/7 + f.threshold - saleable - f.onOrder)/f.roll)*f.roll : 0;
+ const excluded = f.weeks.length - counted.length;
+
+ const search = `<div class="fabsearch">
+   <input id="fabInput" type="search" placeholder="Search any fabric — code, name, bucket or vendor" value="${esc(fabQuery)}" oninput="fabSearch(this.value)" autocomplete="off">
+   <div class="fabres" id="fabResults">${fabList()}</div>
+   <div class="fabhint">Showing ${Object.keys(FABRICS).length} of ~4,000 fabrics</div>
+ </div>`;
+
+ const kpis = bespoke
+  ? `<div class="kpis">
+      <div class="kpi crit"><b>0 m</b><span>BSC holds no stock — mill stock only</span></div>
+      <div class="kpi"><b>${ros.toFixed(0)} m</b><span>avg weekly cut length ${chip("A-05")}</span></div>
+      <div class="kpi crit"><b>Hidden</b><span>mill reported sold out ${chip("A-13")}</span></div>
+      <div class="kpi"><b>Feed</b><span>availability only, no quantity ${chip("A-14")}</span></div>
+     </div>`
+  : `<div class="kpis">
+      <div class="kpi"><b>${saleable} m</b><span>saleable now ${chip("A-29")}</span></div>
+      <div class="kpi"><b>${ros.toFixed(0)} m</b><span>true ROS / week ${chip("A-05")}</span></div>
+      <div class="kpi ${fires?'crit':'ok'}"><b>${Math.round(cover)} d</b><span>cover · lead time ${f.lead} d</span></div>
+      <div class="kpi ${fires?'warn':''}"><b>${fires? need+" m" : "—"}</b><span>${fires?"proposed reorder":"no action needed"}</span></div>
+     </div>`;
+
+ const stock = bespoke
+  ? card("Stock — held at the mill, not by BSC", tbl([{h:"Component"},{h:"Value"},{h:"Source"}],[
+     ["BSC-owned stock","none — cut length service",badge("by design","mut")],
+     ["Mill availability",badge(f.millState,"crit"),badge("Vendor Portal","mut")+chip("A-13")],
+     ["Channel state",badge("Hidden on web + stores","crit"),badge("automatic","ok")]]))
+  : card("Live stock — read, never typed", tbl([{h:"Component"},{h:"Metres",num:1},{h:"Source"}],[
+     ["Physical in warehouse",String(f.physical),badge("Enigma","ok")],
+     ["Less: reserved against orders","− "+f.reserved,badge("Enigma","ok")],
+     ["Less: threshold cushion","− "+f.threshold,badge("Ops Core → Enigma","acc")+chip("A-11")],
+     ["<b>Saleable</b>","<b>"+saleable+"</b>",badge("computed","mut")]]),
+     `<span style="font-size:11.5px;color:var(--muted)">Enigma read 10:42</span>`);
+
+ const coverCard = bespoke
+  ? card("Why there is no reorder maths here", `<div style="padding:14px 16px;font-size:13px;color:var(--muted)">
+      Bespoke fabric is never bought ahead — the mill cuts what each order needs. So there is no threshold, no cover, and no reorder.
+      The only thing that matters is whether the mill still has it, and that is why the channel gate follows the mill feed automatically.</div>`)
+  : card("Cover & reorder — the full working", `<div style="padding:14px 16px;display:grid;gap:7px;font-size:13px">
+      <div>Cover today = ${saleable} m ÷ (${ros.toFixed(0)} ÷ 7 per day) = <b>${Math.round(cover)} days</b></div>
+      <div>Trigger line = ${f.lead} d lead + 7 d review cycle = <b>${trigger} days</b> ${chip("A-06")} → ${Math.round(cover)} ${fires?"&lt;":"&gt;"} ${trigger}, so ${fires?"<b>a proposal fires</b>":"<b>no proposal fires</b>"}</div>
+      ${fires?`<div style="border-top:1px dashed var(--line);padding-top:7px">Cover ${trigger} days: ${(trigger/7).toFixed(0)} weeks × ${ros.toFixed(0)} = <b>${Math.round(ros*trigger/7)} m</b></div>
+      <div>Rebuild the threshold cushion: + <b>${f.threshold} m</b> → target <b>${Math.round(ros*trigger/7)+f.threshold} m</b></div>
+      <div>Less saleable: − ${saleable} m · Less already on order: − ${f.onOrder} m → shortfall <b>${Math.round(ros*trigger/7)+f.threshold-saleable-f.onOrder} m</b></div>
+      <div>Rounded up to ${f.vendor}'s ${f.roll} m rolls = <b style="color:var(--accent)">${need} m proposed</b></div>`
+      :`<div style="border-top:1px dashed var(--line);padding-top:7px;color:var(--muted)">Nothing to order. The system will keep watching and raise a proposal the day cover crosses ${trigger} days.</div>`}
+     </div>`, fires?`<button class="btn primary sm" onclick="go('proposals')">See it in the queue</button>`:"");
+
+ return vhead("MTM Fabric · Fabric 360", fabSel + " · " + f.name,
+   "One fabric, every number in one place — identity, live stock, demand, cover, orders in flight, and every decision ever taken on it.")
+  + search + kpis + V.two(
+   card("Identity", tbl([{h:"Field"},{h:"Value"},{h:"Written by"}],[
+    ["Fabric code",`<span class="code">${fabSel}</span>`,badge("Ops Core","acc")],
+    ["Legacy alias",(f.alias==="—"?"—":`<span class="code">${f.alias}</span> `+chip("A-01")),badge("Ops Core","acc")],
+    ["Composition",f.comp,badge("Ops Core","acc")],
+    ["Bucket",f.bucket,badge("Ops Core","acc")],
+    ["Vendor",f.vendor + (f.lead?` · lead ${f.lead} d · ${f.roll} m rolls`:" · cut length"),badge("Ops Core","acc")],
+    ["Consumption",f.consumption+" "+chip("A-31"),badge("Ops Core","acc")]])),
+   stock)
+  + card(`Demand — ${showDiff?`why the ROS is ${ros.toFixed(0)} m, not ${naive.toFixed(0)} m`:(excluded?"eight weeks, one excluded":"eight weeks, all countable")}`,
+    tbl([{h:"Week"},{h:"Stock condition"},{h:"Metres used",num:1},{h:"Counted?"}],
+     f.weeks.map(w=>[w[0], w[3]?w[1]:`<span style="color:var(--crit)">${w[1]}</span>`, String(w[2]),
+      w[3]?badge("counted","ok"):badge("excluded — stock was out","crit")+chip("A-05")]))
+    + `<div style="padding:12px 16px;border-top:1px solid var(--line);display:grid;gap:6px;font-size:13px">
+       <div><b>Our method</b> — last 4 in-stock weeks: (${last4.join(" + ")}) ÷ 4 = <b>${ros.toFixed(0)} m / week</b></div>
+       ${showDiff?`<div style="color:var(--crit)"><b>Today's method</b> — all ${f.weeks.length} weeks including the ${excluded} sold-out one${excluded>1?"s":""}: ${f.weeks.reduce((a,b)=>a+b[2],0).toLocaleString()} ÷ ${f.weeks.length} = <b>${naive.toFixed(0)} m / week</b></div>
+       <div style="color:var(--muted)">Counting the sold-out weeks understates real demand by <b>${understate}%</b> — which is how a fabric that sells fine ends up under-ordered, runs out again, and looks weaker still.</div>`
+       :`<div style="color:var(--muted)">${excluded? "The one excluded week is too recent to shift the average yet — but it is excluded on principle, so the number never drifts downward as stock-outs accumulate." : `This fabric has not been out of stock in the last ${f.weeks.length} weeks, so both methods agree. The difference only appears once a stock-out happens.`}</div>`}
+      </div>`)
+  + coverCard
+  + V.two(
+    card("Orders in flight", tbl([{h:"PO"},{h:"Qty",num:1},{h:"Expected"},{h:"State"}],
+     f.pos.map(p=>[p[0]==="—"?"— none open":`<span class="code">${p[0]}</span>`,p[1],p[2],badge(p[3],p[4])]))),
+    card("Where this fabric lives", tbl([{h:"Presence"},{h:"Detail"}], f.presence.map(x=>[x[0],x[1]]))))
+  + card("Decision history — the memory that used to live in someone's head",
+     tbl([{h:"When"},{h:"Who"},{h:"Decision"},{h:"Reason given"}], f.decisions.map(d=>[d[0],d[1],d[2],d[3]])));
+};
+
+/* ---------- PLANNING ---------- */
+V.p_coverage = () => vhead("Planning","Coverage Board","Per SKU × size. ROS counts in-stock weeks only, so a stock-out no longer reads as weak demand. Click a code to see the week-by-week working."+chip("A-05")+chip("A-06")) +
+ card("Coverage — worst first", tbl(
+  [{h:"SKU · size"},{h:"Store-days in stock (4 wk)",num:1},{h:"True ROS /wk",num:1},{h:"Stock",num:1},{h:"Coverage",num:1},{h:"Lead time",num:1},{h:"Status"}],
+  [
+   [`<span class="code">RTW-SHT-021 · L</span>`,"64%","31 pc","38 pc","9 d","21 d",badge("Reorder proposed","crit")],
+   [`<span class="code">RTW-SHT-021 · M</span>`,"71%","28 pc","44 pc","11 d","21 d",badge("Reorder proposed","crit")],
+   [`<span class="codelink" onclick="go('fab360')" title="Open Fabric 360">CTN-PPL-0412 (MTM)</span>`,"100%","172 m","221 m","9 d","21 d",badge("In proposal","warn")],
+   [`<span class="code">RTW-CHN-009 · 32</span>`,"96%","12 pc","81 pc","47 d","30 d",badge("Healthy","ok")],
+   [`<span class="code">RTW-SHT-014 · XS</span>`,"100%","0.4 pc","102 pc","—","—",badge("Liquidation proposed","warn")],
+  ]));
+V.p_slots = () => vhead("RTW Planning","Option Plan & Slots","The family plan out of the swatch-book labels, made explicit. An empty slot is itself the trigger."+chip("A-08"), "rtw") +
+ card("Slot plan", tbl(
+  [{h:"Family"},{h:"Plan",num:1},{h:"Live",num:1},{h:"Empty",num:1},{h:"Action"}],
+  [
+   ["Houndstooth","6","4","2",badge("Sourcing brief proposed","warn")],
+   ["Stripes","30","27","3",badge("Sourcing brief proposed","warn")],
+   ["Linen solids","12","12","0",badge("Full","ok")],
+   ["RTW Shirts (option count)","136","118 healthy-adjusted","—",badge("Review at drop plan","mut")],
+  ]));
+V.p_sizes = () => vhead("RTW Planning","Size Ratios","Computed from unbroken history only; every manual override is recorded with a reason."+chip("A-05"), "rtw") +
+ card("Size ratio — RTW Shirts · Standard fit", tbl(
+  [{h:"Size"},{h:"Clean-history share",num:1},{h:"Last buy",num:1},{h:"Proposed next buy",num:1},{h:"Override"}],
+  [["S","14%","12%","14%","—"],["M","27%","24%","27%","—"],["L","29%","26%","29%","—"],["XL","19%","22%","19%",`<span class="sub2">planner note: reduce, festival skew</span>`],["XXL","11%","16%","11%","—"]]));
+V.p_lost = () => vhead("Shared Operations","Lost Sales","Two taps at the counter. Demand that used to vanish now argues for stock."+chip("A-07"), "both") +
+ card("Captured this week — 12", tbl(
+  [{h:"When"},{h:"Store"},{h:"Asked for"},{h:"Reason"},{h:"Outcome"}],
+  [
+   ["Tue 11:40","Kala Ghoda",`<span class="code">TM-4408</span> Sky End-on-End`,"Mill sold out","Offered alternative — declined"],
+   ["Tue 16:05","Khan Market","Oxford BD · L","Size out","Ordered for delivery"],
+   ["Wed 12:15","Bandra","Sage Linen","Below threshold","Walked out"],
+   ["Thu 13:30","Indiranagar","Chino Sand · 34","Size out","Walked out"],
+  ]));
+
+/* ---------- SOURCING ---------- */
+const BLOCKS = [
+ {code:"BLK-118", fab:"LIN-SOL-0233 · Sage Linen", vendor:"Soktas", qty:"400 m", left:3, owner:"Sourcing"},
+ {code:"BLK-121", fab:"CTN-HND-0110 · Rust Houndstooth", vendor:"Vardhman", qty:"300 m", left:6, owner:"Sourcing"},
+ {code:"BLK-115", fab:"FLN-MOS-0512 · Moss Flannel", vendor:"Soktas", qty:"600 m", left:7, owner:"Design"},
+ {code:"BLK-122", fab:"CTN-CHK-0455 · Glen Check", vendor:"Arvind Mills", qty:"500 m", left:41, owner:"Sourcing"},
+];
+V.s_blocks = () => vhead("MTM Sourcing","Block Register","Every block has an owner and a countdown. Expiry alerts fire at 14, 7 and 3 days — a block can no longer die of forgetfulness."+chip("A-10"), "mtm") +
+ card("Active blocks", tbl(
+  [{h:"Block"},{h:"Fabric"},{h:"Vendor"},{h:"Qty",num:1},{h:"Days left",num:1},{h:"Owner"},{h:""}],
+  BLOCKS.map((b,i)=>[
+   `<span class="code">${b.code}</span>`, b.fab, b.vendor, b.qty,
+   badge(b.left+" d", b.left<=3?"crit":b.left<=7?"warn":"ok"), b.owner,
+   `<span id="blk${i}"><button class="btn sm primary" onclick="blockAct(${i},'Converted to PO')">Convert to PO</button> <button class="btn sm ghost-crit" onclick="blockAct(${i},'Released — vendor informed')">Release</button></span>`])));
+function blockAct(i,msg){ document.getElementById("blk"+i).innerHTML = badge(msg, msg.startsWith("Conv")?"ok":"mut"); toast(msg+" · recorded"); }
+V.s_intake = () => vhead("MTM Fabric","Fabric Intake","The old ordering sheet as a form: filled once, approved once, then it becomes the Enigma datasheet. No re-typing."+chip("A-12"), "mtm") +
+ card("Intake queue", tbl(
+  [{h:"Draft"},{h:"Fabric"},{h:"Composition / width"},{h:"Price /m",num:1},{h:"Vendor"},{h:"Stage"}],
+  [
+   [`<span class="code">INT-208</span>`,"Rust Houndstooth","100% cotton · 150 cm","₹412","Vardhman",badge("Awaiting approval → PO","warn")],
+   [`<span class="code">INT-209</span>`,"Glen Check","60/40 cot-linen · 148 cm","₹465","Arvind Mills",badge("Draft — 2 fields missing","mut")],
+   [`<span class="code">INT-205</span>`,"Moss Flannel","100% cotton brushed","₹398","Soktas",badge("Approved · pushed to Enigma","ok")],
+  ]));
+let millRows = [
+ {mill:"Thomas Mason", code:"TM-4408", name:"Sky End-on-End", avail:"Sold out", hidden:true},
+ {mill:"Thomas Mason", code:"TM-3390", name:"White Royal Twill", avail:"Available", hidden:false},
+ {mill:"Albini", code:"AL-2216", name:"Blue Melange", avail:"Available", hidden:false},
+ {mill:"Soktas", code:"SK-9012", name:"Ecru Dobby · 214 m", avail:"214 m", hidden:false},
+];
+V.s_mills = () => vhead("MTM Sourcing","Bespoke Mill Feeds","Mill availability lands here daily — by portal or parsed email — and the channel gate follows it automatically. The sold-out gap goes to zero."+chip("A-13")+chip("A-14"), "mtm") +
+ card("Live mill availability", tbl(
+  [{h:"Mill"},{h:"Fabric"},{h:"Availability"},{h:"Channel state"},{h:"Last update"}],
+  millRows.map(r=>[r.mill, `<span class="code">${r.code}</span> ${r.name}`,
+   r.avail==="Sold out"?badge("Sold out","crit"):badge(r.avail,"ok"),
+   r.hidden?badge("Hidden on web + stores","crit"):badge("Sellable","ok"),
+   "today 08:10"])) ,
+  `<span style="font-size:12px;color:var(--muted)">Try it: mark one sold out in the Vendor Portal →</span>`);
+V.s_trims = () => vhead("Shared Record","Trims & Packaging","Same intake, same vendor master. The Sourcing-vs-factory boundary is explicit on every line."+chip("A-15"), "both") +
+ card("Trims stock & triggers", tbl(
+  [{h:"Item"},{h:"Vendor"},{h:"Stock",num:1},{h:"Reorder at",num:1},{h:"Consumed by"},{h:"Status"}],
+  [
+   ["Buttons · MOP 18L","Shree Trims Co","41,000","20,000","Factory job cards",badge("OK","ok")],
+   ["Interlining · soft","Shree Trims Co","8,200 m","9,000 m","Factory job cards",badge("Reorder proposed","warn")],
+   ["Garment covers","PackRight","3,100","2,000","Warehouse",badge("OK","ok")],
+  ]));
+
+/* ---------- DESIGN ---------- */
+V.d_samples = () => vhead("RTW Pre-production","Sampling Rounds","Versioned rounds with dated comments and named approvals. The factory sees only the latest approved version."+chip("A-16"), "rtw") +
+ V.two(
+  card("Open samples", tbl([{h:"Style"},{h:"Round"},{h:"With"},{h:"Waiting",num:1},{h:"Stage"}],[
+   [`<span class="code">RTW-SHT-027</span> Flannel Overshirt`,"V3","Factory (Tirupur)","2 d",badge("PP in review","warn")],
+   [`<span class="code">MTM-OPT-1109</span> Placket stiffener`,"V2","Design","1 d",badge("Comments due","warn")],
+   [`<span class="code">RTW-CHN-011</span> Pleated Chino`,"V1","Factory (Bengaluru)","5 d",badge("First sample","mut")],
+  ])),
+  card(`Version trail · RTW-SHT-027`, `<div class="vtl">
+   <div class="vrow"><span class="vtag">V1</span><div><b>28 Jul</b> — fit sample. 4 comments (sleeve pitch, collar roll). <span class="sub2">Commented by Design · sent to factory 29 Jul</span></div></div>
+   <div class="vrow"><span class="vtag">V2</span><div><b>07 Aug</b> — wash + hand-feel approved; pocket alignment flagged. <span class="sub2">2 comments · photos attached</span></div></div>
+   <div class="vrow"><span class="vtag ok">V3</span><div><b>14 Aug</b> — PP sample. Awaiting sign-off vs V2 record, not memory. <button class="btn sm ok" onclick="toast('PP approved · shipment sample gate opened · factory notified')">Approve PP</button></div></div>
+  </div>`));
+V.d_tech = () => vhead("RTW Pre-production","Tech Packs","Generated from the record as a shareable PDF; one communication briefs factory and outpost vendors.", "rtw") +
+ card("Tech packs", tbl([{h:"Style"},{h:"Version"},{h:"BOM lines",num:1},{h:"Shared with"},{h:"State"}],[
+  [`<span class="code">RTW-SHT-027</span>`,"TP-v3","14","Tirupur factory · trims vendor",badge("Current","ok")],
+  [`<span class="code">RTW-CHN-011</span>`,"TP-v1","11","Bengaluru factory",badge("Current","ok")],
+  [`<span class="code">RTW-SHT-021</span>`,"TP-v7","12","Tirupur factory",badge("Repeat style","mut")]]));
+V.d_consump = () => vhead("Design & Sampling","Consumption Rules","The rule that reserves metres on every order — now double-checked before an option goes live, with uplifts for pattern matching."+chip("A-17")+chip("A-31")) +
+ card("Rules", tbl([{h:"Option"},{h:"Base consumption",num:1},{h:"Uplift"},{h:"Checked by"},{h:"State"}],[
+  ["Shirt · Standard","1.60 m","+8% checks/stripes "+chip("A-31"),"Tech + Design",badge("Active","ok")],
+  ["Shirt · Relaxed","1.75 m","+8% checks/stripes","Tech + Design",badge("Active","ok")],
+  ["Overshirt","2.10 m","+10% flannel brush","Awaiting 2nd check "+chip("A-17"),badge("Blocked from go-live","warn")]]));
+
+/* ---------- PRODUCTION ---------- */
+V.pr_pos = () => vhead("RTW Pre-production","PO Board · TNA","Six milestones per PO. A slipping date flags itself the day it breaks — not at the warehouse door in week 12."+chip("A-20")+chip("A-21"), "rtw") +
+ card("Purchase orders", tbl(
+  [{h:"PO"},{h:"Style / fabric"},{h:"Vendor"},{h:"Qty",num:1},{h:"TNA — fabric·cut·stitch·QC·dispatch·GRN"},{h:"Status"}],
+  [
+   [`<span class="code">PO-2201</span>`,"Oxford BD restock","Arvind → Tirupur","1,400 pc",`<span class="tna"><i class="d"></i><i class="d"></i><i class="slip"></i><i></i><i></i><i></i></span>`,badge("Stitching +4 d — flagged Mon","crit")],
+   [`<span class="code">PO-2204</span>`,"Chino Sand (promoted)","Bengaluru","900 pc",`<span class="tna"><i class="d"></i><i class="due"></i><i></i><i></i><i></i><i></i></span>`,badge("Cutting due Thu","warn")],
+   [`<span class="code">PO-2189</span>`,"Butcher Stripe 800 m","Arvind Mills","800 m",`<span class="tna"><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i><i class="d"></i></span>`,badge("GRN complete","ok")],
+  ]));
+V.pr_ras = () => vhead("RTW Pre-production","RAS Workflow","When fabric falls short mid-run, the revision is raised, quantified, and re-approved in one recorded flow."+chip("A-22")) +
+ card("Revised ratio sheets", tbl([{h:"RAS"},{h:"Trigger"},{h:"Delta",num:1},{h:"Approvals"},{h:"State"}],[
+  [`<span class="code">RAS-031</span>`,"PO-2201: fabric short 120 m","− ₹1.4 L","Production ✓ · Planning ✓",badge("Applied","ok")],
+  [`<span class="code">RAS-032</span>`,"Drop 2 of 10 options, OCT drop","− ₹3.1 L","Production ✓ · Finance pending "+chip("A-22"),badge("Awaiting finance","warn")]]));
+V.pr_qc = () => vhead("RTW Pre-production","QC & Vendor Score","Per-batch checklists with photos (later slice, designed now) rolling into one scorecard per vendor."+chip("A-23"), "rtw") +
+ card("Vendor scorecard", tbl([{h:"Vendor"},{h:"On-time",num:1},{h:"Defect rate",num:1},{h:"RAS raised",num:1},{h:"Trend"}],[
+  ["Tirupur factory","91%","1.8%","1",badge("Stable","ok")],
+  ["Bengaluru factory","84%","2.6%","0",badge("Watch","warn")],
+  ["Arvind Mills","96%","0.4%","1",badge("Strong","ok")]]));
+
+/* ---------- LAST MILE ---------- */
+V.l_inward = () => vhead("Last Mile","Goods Inward","Scan at the door. Stock is classified before it exists: sellable, display, fit sample, or damaged."+chip("A-24")+chip("A-27"), "both") +
+ card("Today's GRNs", tbl([{h:"GRN"},{h:"PO"},{h:"Received",num:1},{h:"Classified"},{h:"Invoice"},{h:"State"}],[
+  [`<span class="code">GRN-5521</span>`,`<span class="code">PO-2189</span>`,"800 m","800 sellable","→ Finance + Merch ✓",badge("Closed","ok")],
+  [`<span class="code">GRN-5522</span>`,`<span class="code">PO-2198</span>`,"960 pc","900 sellable · 40 display · 20 damaged "+chip("A-27"),"→ Finance ✓",badge("Closed","ok")],
+  [`<span class="code">GRN-5523</span>`,`<span class="code">PO-2204</span>`,"—","—","—",badge("Expected Fri","mut")]]));
+V.l_hemming = () => vhead("Last Mile","Hemming Tracker","The black hole gets in/out scans. Dwell beyond 5 days flags."+chip("A-26"), "rtw") +
+ card("In hemming now", tbl([{h:"Batch"},{h:"Pieces",num:1},{h:"In",num:1},{h:"Dwell",num:1},{h:"State"}],[
+  [`<span class="code">HEM-114</span>`,"120","Mon","2 d",badge("Normal","ok")],
+  [`<span class="code">HEM-112</span>`,"85","last Wed","7 d",badge("Over dwell — flagged","crit")],
+  [`<span class="code">HEM-115</span>`,"60","today","0 d",badge("Normal","ok")]]));
+V.l_sto = () => vhead("Last Mile","Allocation & STOs","An STO closes when the receiving scan happens. Unscanned 48 hours → alert. System stock equals floor stock again."+chip("A-25"), "rtw") +
+ card("Open transfers", tbl([{h:"STO"},{h:"To"},{h:"Pieces",num:1},{h:"Shipped"},{h:"Age",num:1},{h:"State"}],[
+  [`<span class="code">STO-0921</span>`,"Khan Market","64","Sat","52 h",badge("Unconfirmed — alerted","crit")],
+  [`<span class="code">STO-0925</span>`,"Bandra","40","Mon","20 h",badge("In transit","mut")],
+  [`<span class="code">STO-0919</span>`,"Kala Ghoda","72","Fri","—",badge("Received · auto-closed","ok")]]));
+V.l_pullback = () => vhead("Last Mile","Pull-backs","A closed queue, not an emailed sheet: each item confirmed back, piece by piece."+chip("A-28"), "both") +
+ card("Active pull-backs", tbl([{h:"Task"},{h:"Store"},{h:"Items",num:1},{h:"Reason"},{h:"State"}],[
+  [`<span class="code">PB-201</span>`,"Bandra","3 displays","Sage Linen sold out at mill",badge("2 of 3 confirmed","warn")],
+  [`<span class="code">PB-202</span>`,"UB City","1 display","Same",badge("Pending","mut")],
+  [`<span class="code">PB-198</span>`,"Indiranagar","312 pc","Liquidation RTW-SHT-014",badge("Complete","ok")]]));
+V.l_swatch = () => vhead("MTM Operations","Swatch Books & Displays","The 34-column sheet becomes receipt-confirmed movements. We finally know which swatches reached which store.", "mtm") +
+ card("Dispatches", tbl([{h:"Dispatch"},{h:"Contents"},{h:"To"},{h:"Confirmed"},{h:"State"}],[
+  [`<span class="code">SW-0810</span>`,"Formal Vol.3 · 24 pages","All 30 stores","27 / 30",badge("3 overdue >72 h","warn")],
+  [`<span class="code">SW-0811</span>`,"Rust Houndstooth insert","12 stores","12 / 12",badge("Complete","ok")]]));
+
+/* ---------- RETURNS ---------- */
+V.returns = () => vhead("Store Ops","Returns & Service","Slack threads become status cases. The store, the factory and the customer see the same state."+chip("A-32"), "both") +
+ card("Open cases", tbl([{h:"Case"},{h:"Store"},{h:"Item"},{h:"Ladder stage"},{h:"Garment at"},{h:"Refund"},{h:"State"}],[
+  [`<span class="code">RET-1182</span>`,"Khan Market","MTM shirt · fit","Refit → Remake",badge("Factory · received","ok"),"—",badge("In remake","warn")],
+  [`<span class="code">RET-1185</span>`,"Bandra","RTW chino","Refund",badge("In transit","mut"),badge("Blocked till receipt","warn"),badge("Waiting garment","warn")],
+  [`<span class="code">RET-1179</span>`,"Kala Ghoda","MTM shirt","Store credit",badge("Restocked","ok"),badge("Credit issued","ok"),badge("Closed","ok")]]));
+
+/* ---------- FINANCE ---------- */
+V.f_cogs = () => vhead("Finance","Cost per SKU","Cost lives on the record and margin computes itself. The separate cost file dies."+chip("A-33")) +
+ card("Style costing", tbl([{h:"Style"},{h:"Fabric",num:1},{h:"Making",num:1},{h:"Ship",num:1},{h:"Hem",num:1},{h:"Trims",num:1},{h:"COGS",num:1},{h:"MRP",num:1},{h:"Margin",num:1}],[
+  [`<span class="code">RTW-SHT-021</span>`,"640","410","55","30","48","1,183","3,900",badge("69.7%","ok")],
+  [`<span class="code">RTW-CHN-009</span>`,"720","520","55","60","62","1,417","4,500",badge("68.5%","ok")],
+  [`<span class="code">RTW-SHT-014</span>`,"590","445","55","—","51","1,141","3,400 → 2,040",badge("44.1% at markdown","warn")]]));
+V.f_margin = () => vhead("Finance","Margin Working","Stock on hand × realised MRP × cost — computed continuously, not rebuilt monthly.") +
+ `<div class="grid3">
+  <div class="mini"><h4>RTW Shirts</h4><div class="row"><span>Stock value</span><b>₹41.2 L</b></div><div class="row"><span>Projected margin</span><b>66.1%</b></div><div class="row"><span>Markdown exposure</span><b>₹3.4 L</b></div></div>
+  <div class="mini"><h4>RTW Bottoms</h4><div class="row"><span>Stock value</span><b>₹28.7 L</b></div><div class="row"><span>Projected margin</span><b>64.8%</b></div><div class="row"><span>Markdown exposure</span><b>₹1.1 L</b></div></div>
+  <div class="mini"><h4>MTM (fabric)</h4><div class="row"><span>Metre value</span><b>₹52.9 L</b></div><div class="row"><span>Dead fabric &gt;180 d</span><b>₹2.6 L</b></div><div class="row"><span>Bespoke exposure</span><b>nil — mill stock</b></div></div>
+ </div>`;
+V.f_wc = () => vhead("Finance","Working Capital","Computed from the live PO ledger. A slipped TNA date moves the cash view the same day."+chip("A-34")) +
+ card("Cash calendar — from open POs", tbl([{h:"Week"},{h:"Deliveries due",num:1},{h:"Payments due",num:1},{h:"PDCs maturing",num:1},{h:"Note"}],[
+  ["25–29 Aug","₹6.2 L","₹4.1 L","₹2.0 L","—"],
+  ["1–5 Sep","₹9.8 L","₹7.3 L","₹3.5 L",badge("PO-2201 slip moved ₹2.1 L here","warn")],
+  ["8–12 Sep","₹3.4 L","₹5.9 L","₹1.5 L","—"]]));
+V.f_budget = () => vhead("Finance","Budget-Fit Approvals","Above ₹5 L, a commitment waits for this queue — the check that used to be a conversation."+chip("A-35")) +
+ card("Queue", tbl([{h:"Request"},{h:"From"},{h:"Value",num:1},{h:"Budget line"},{h:"State"}],[
+  ["Glen Check 500 m + trims","Sourcing","₹5.8 L","OCT drop · fabrics",badge("Awaiting Finance","warn")],
+  ["Moss Flannel block → PO","Design","₹4.7 L","OCT drop · fabrics",badge("Under limit — auto-cleared","ok")]]));
+
+/* ---------- INTELLIGENCE ---------- */
+V.i_health = () => vhead("Intelligence","Option Health","One score per option: velocity, size completeness, age, margin. The queue feeds proposals, not reports."+chip("A-04")) +
+ card("Health board", tbl([{h:"Option"},{h:"ROS trend"},{h:"Size complete",num:1},{h:"Age",num:1},{h:"Health"},{h:"System says"}],[
+  [`<span class="code">RTW-CHN-009</span> Chino Sand`,"↑ 1.8× median","100%","62 d",badge("92","ok"),"Promote to core"],
+  [`<span class="code">RTW-SHT-021</span> Oxford BD`,"steady","71% "+chip("A-04"),"110 d",badge("74","warn"),"Fix sizes M/L"],
+  [`<span class="code">RTW-SHT-014</span> Cuban Print`,"↓","33%","131 d",badge("31","crit"),"Liquidate"]]));
+V.i_sell = () => vhead("Intelligence","Sell-through","Possible for the first time: sold ÷ ordered per option, with stock context attached."+chip("A-36")) +
+ card("By drop", tbl([{h:"Drop"},{h:"Options",num:1},{h:"Ordered",num:1},{h:"Sold",num:1},{h:"Sell-through",num:1},{h:"Caveat"}],[
+  ["MAY-26","14","2,110 pc","1,684 pc",badge("80%","ok"),"2 options were size-broken 3+ wks"],
+  ["JUN-26","11","1,650 pc","990 pc",badge("60%","warn"),"clean read"],
+  ["JUL-26","12","1,800 pc","612 pc",badge("34% (early)","mut"),"5 wks in"]]));
+V.i_age = () => vhead("Intelligence","Ageing & Liquidation","The ageing file, wired to a decision. Crossing the rule creates a proposal — not a someday."+chip("A-09")) +
+ card("Ageing bands", tbl([{h:"Band"},{h:"Options",num:1},{h:"Value",num:1},{h:"Action"}],[
+  ["0–60 d","61","₹38.4 L","—"],
+  ["61–120 d","48","₹22.1 L","watch"],
+  ["121+ d","25","₹9.6 L",badge("6 liquidation proposals raised","warn")]]));
+V.i_feedback = () => vhead("Intelligence","Store Feedback","The floor finally has a channel that lands somewhere: every note is routed and visibly answered.") +
+ card("This week", tbl([{h:"From"},{h:"Note"},{h:"Routed to"},{h:"State"}],[
+  ["Kala Ghoda","Customers asking for knitted polos in navy","Planning",badge("Added to option review","ok")],
+  ["Khan Market","Glen check swatch page loose in Formal Vol.3","Merchandising",badge("Replacement sent","ok")],
+  ["Bandra","Fit sample 42 missing (Standard)","Warehouse",badge("In STO-0925","warn")]]));
+
+/* ---------- INTEGRATIONS ---------- */
+V.x_enigma = () => vhead("Integrations","Enigma Sync","Read every 15 minutes; identity and thresholds pushed back. Stock is never written from two places."+chip("A-37")+chip("A-38")) +
+ card("Live sync feed", `<ul class="feed" id="feedList">${enigmaFeed.map(f=>`<li><span class="t">${f[0]}</span><span class="dir ${f[1]==="IN"?"in":"out"}">${f[1]}</span><span>${esc(f[2])}</span></li>`).join("")}</ul>`,
+  badge("Gate: API vs export — due Call 5","warn")) +
+ card("Field contract", tbl([{h:"Field group"},{h:"Direction"},{h:"Frequency"},{h:"Conflict rule"}],[
+  ["Stock: physical / reserved / saleable",badge("Enigma → Ops Core","ok"),"15 min "+chip("A-37"),"Enigma always wins"],
+  ["Product & fabric identity, MRP",badge("Ops Core → Enigma","acc"),"on change","Ops Core always wins"],
+  ["Thresholds",badge("Ops Core → Enigma","acc"),"on approval "+chip("A-11"),"Ops Core always wins"],
+  ["Orders & reservations",badge("Enigma → Ops Core","ok"),"15 min","Enigma always wins"]]));
+V.x_shopify = () => vhead("Integrations","Shopify Sync","Demand flows in daily; identity and channel state flow out through Enigma's gate."+chip("A-39")) +
+ card("Jobs", tbl([{h:"Job"},{h:"Direction"},{h:"Schedule"},{h:"Last run"},{h:"State"}],[
+  ["Sales orders (line level)",badge("Shopify → Ops Core","ok"),"daily 02:00","today 02:00 · 1,241 lines",badge("OK","ok")],
+  ["Sold-out / size-broken auto-hide",badge("Ops Core → via Enigma","acc"),"on event","today 08:11 · TM-4408 hidden",badge("OK","ok")],
+  ["Launch content from master",badge("Ops Core → via Enigma","acc"),"on approval","—",badge("Idle","mut")]]));
+V.x_writer = () => vhead("Integrations","One Writer per Field","The rule that keeps three systems honest: every field has exactly one author. Nothing is ever typed twice.") +
+ card("The contract", tbl([{h:"Field group"},{h:"Written only by"},{h:"Read by"}],[
+  ["Product & fabric identity, plans, thresholds, decisions",badge("Ops Core","acc"),"Enigma · Shopify · POS"],
+  ["Stock, reservations, order lifecycle, PO/GRN documents",badge("Enigma","ok"),"Ops Core · stores"],
+  ["Sale, channel, customer",badge("Shopify / POS","warn"),"Ops Core intelligence"],
+  ["Mill & vendor availability, TNA confirmations",badge("Vendor Portal","mut"),"Ops Core · channel gate"]]));
+
+/* ---------- ADMIN ---------- */
+V.a_roles = () => vhead("Admin","Roles & Permissions","Drafted, not agreed — this matrix is assumption A-40 in its entirety. Vendor rates are hidden from all but Sourcing and Finance."+chip("A-40")) +
+ card("Matrix (W = write · R = read · A = approve · — = no access)", `<div class="tblwrap"><table class="mx"><thead><tr><th>Module</th><th>Planner</th><th>Sourcing</th><th>Design</th><th>Production</th><th>Warehouse</th><th>Store</th><th>Finance</th></tr></thead><tbody>
+  <tr><td>Masters</td><td class="ro">R</td><td class="rw">W</td><td class="rw">W</td><td class="ro">R</td><td class="ro">R</td><td class="ro">R</td><td class="ro">R</td></tr>
+  <tr><td>Proposals</td><td class="ap">A</td><td class="rw">W</td><td class="ro">R</td><td class="ro">R</td><td class="na">—</td><td class="na">—</td><td class="ap">A&gt;₹5L</td></tr>
+  <tr><td>Blocks & intake</td><td class="ro">R</td><td class="rw">W</td><td class="rw">W</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="ap">A</td></tr>
+  <tr><td>Vendor rates</td><td class="na">—</td><td class="rw">W</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="ro">R</td></tr>
+  <tr><td>Sampling</td><td class="na">—</td><td class="ro">R</td><td class="rw">W</td><td class="rw">W</td><td class="na">—</td><td class="na">—</td><td class="na">—</td></tr>
+  <tr><td>TNA / POs</td><td class="ro">R</td><td class="ro">R</td><td class="ro">R</td><td class="rw">W</td><td class="ro">R</td><td class="na">—</td><td class="ro">R</td></tr>
+  <tr><td>Last mile</td><td class="ro">R</td><td class="na">—</td><td class="na">—</td><td class="ro">R</td><td class="rw">W</td><td class="rw">W</td><td class="na">—</td></tr>
+  <tr><td>Finance</td><td class="ro">R</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="na">—</td><td class="rw">W</td></tr>
+ </tbody></table></div>`);
+V.a_rules = () => vhead("Admin","Rules & Thresholds","Every policy the system enforces, in one screen — each one traceable to its assumption, each one editable after the calls.") +
+ card("Configured rules", tbl([{h:"Rule"},{h:"Value"},{h:"Assumption"}],[
+  ["Healthy option = coverage ≥ 2 lead times AND size availability ≥","80%",chip("A-04")],
+  ["Coverage alert lead buffer","lead time + 7 d",chip("A-06")],
+  ["Promote-to-core at ROS ≥ category median ×","1.5 for 4 wks",chip("A-08")],
+  ["Liquidate at age / size completeness","120 d / <40%",chip("A-09")],
+  ["Default block window (unknown vendor)","60 d",chip("A-10")],
+  ["Availability-only mills: manual confirm above","25 m",chip("A-14")],
+  ["RAS finance re-approval above","₹2,00,000",chip("A-22")],
+  ["STO unconfirmed alert after","48 h",chip("A-25")],
+  ["Hemming dwell flag after","5 d",chip("A-26")],
+  ["Swatch receipt confirmation within","72 h",chip("A-28")],
+  ["Budget-fit approval above","₹5,00,000",chip("A-35")]]));
+V.a_audit = () => vhead("Admin","Audit Log","Who did what, when, and why — the memory that used to live in one person's head.") +
+ card("Recent", tbl([{h:"When"},{h:"Who"},{h:"Action"}],[
+  ["today 10:27","Planner","Approved threshold change LIN-SOL-0233 → 220 m (reason: festival uplift)"],
+  ["today 09:58","Design","Activated RTW-SHT-027 after consumption second-check"],
+  ["yesterday","Sourcing","Released BLK-109 — vendor informed (reason: costing rejected)"]]));
+
+/* ---------- STORE APP PORTAL ---------- */
+let stStep = 0;
+const stSteps = () => [
+ `<div class="ph-step"><h3>Punch order · 1 of 4 — scan the swatch</h3>
+  <div class="scanbox">camera viewfinder</div>
+  <button class="ph-btn" onclick="stGo(1)">Simulate scan · QR on swatch sticker ${chip("A-24")}</button>
+  <button class="ph-btn ghost" onclick="toast('Lost sale captured: 2 taps — fabric + reason. Counted into demand.')">Customer asked, we don't have it ${chip("A-07")}</button></div>`,
+ `<div class="ph-step"><h3>2 of 4 — fabric found</h3>
+  <div class="ph-item"><b>CTN-PPL-0412 · White Poplin 2/140</b>Arvind Mills · MTM Core
+  <div class="avail"><span>Live saleable ${chip("A-29")}</span><b>221 m</b></div>
+  <div class="avail"><span>Enough for this order</span><b style="color:var(--ok)">Yes · reserves on punch</b></div></div>
+  <button class="ph-btn" onclick="stGo(2)">Continue to styling</button></div>`,
+ `<div class="ph-step"><h3>3 of 4 — styling & measurements</h3>
+  <div class="ph-item"><b>Styling</b>Cutaway collar · 1-button cuff · no monogram</div>
+  <div class="ph-item"><b>Fit Smart · 5 questions</b>Complete · consumption 1.68 m<span class="sub2">Tailor adjusted +1.5" sleeve — within ±2", no recheck ${chip("A-31")}</span></div>
+  <button class="ph-btn" onclick="stGo(3)">Review order</button></div>`,
+ `<div class="ph-step"><h3>4 of 4 — punch once</h3>
+  <div class="ph-item"><b>₹4,850 · MTM shirt</b>Bills in Shopify · production + reservation in Enigma — one entry ${chip("A-30")}</div>
+  <button class="ph-btn" onclick="stPunch()">Punch order</button></div>`,
+ `<div class="ph-step"><h3>Order punched ✓</h3>
+  <div class="ph-item"><b>ORD-88245 · Kala Ghoda</b>1.68 m reserved on CTN-PPL-0412<span class="sub2">Watch it appear in Integrations → Enigma Sync</span></div>
+  <button class="ph-btn ghost" onclick="stGo(0)">New order</button></div>`,
+][stStep];
+function stGo(n){ stStep=n; render(); }
+function stPunch(){
+ stStep=4;
+ const now = new Date(); const hh=String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0");
+ enigmaFeed.unshift([hh,"IN","Order ORD-88245 reserved 1.68 m of CTN-PPL-0412 (Kala Ghoda) — punched from Store App"]);
+ toast("Punched once · billed in Shopify · reserved in Enigma"); render();
+}
+V.storeapp = () => vhead("Store App","Kala Ghoda · floor device","One app on the floor: punch by scan, confirm receipts, action pull-backs, capture lost sales.") +
+ `<div class="phonewrap">
+  <div class="phone"><div class="ph-head"><b>BSC Store</b><span class="badge b-ok" style="margin-left:auto">Kala Ghoda</span></div>
+   <div class="ph-body">${stSteps()}</div></div>
+  <div style="flex:1;min-width:300px">` +
+  card("My tasks today", tbl([{h:"Task"},{h:"State"}],[
+   [`Confirm receipt · STO-0919 (72 pc) ${chip("A-25")}`,`<button class="btn sm ok" onclick="toast('Receipt scan confirmed · STO-0919 auto-closed · warehouse notified')">Scan & confirm</button>`],
+   [`Pull back Sage Linen display ${chip("A-28")}`,`<button class="btn sm" onclick="toast('Pull-back PB-201 confirmed from this store')">Confirm sent</button>`],
+   [`Swatch book Formal Vol.3 received?`,`<button class="btn sm" onclick="toast('Receipt confirmed · dispatch SW-0810 updated')">Confirm</button>`]])) +
+  card("Store stock truth", tbl([{h:"Query"},{h:"Answer"}],[
+   ["Sage Linen — can I sell it?",badge("No — hidden, mill sold out","crit")+" alternative: Ecru Dobby"],
+   ["Oxford BD · L for walk-in",badge("38 pc central · 2 in transit to you","warn")],
+   ["Repeat customer's last fabric",`<span class="code">CTN-STR-0388</span> · in stock · reorder same measurements ✓`]])) +
+  `</div></div>`;
+
+/* ---------- VENDOR PORTAL ---------- */
+V.vendorportal = () => vhead("Vendor & Mill Portal","Soktas · supplier view","Mills post availability and confirm dates themselves — replacing five emails a morning."+chip("A-13")+chip("A-21")) +
+ card("Your fabrics — post availability", tbl(
+  [{h:"Fabric"},{h:"Our record"},{h:"Update"}],
+  [
+   [`<span class="code">SK-9012</span> Ecru Dobby`,"214 m available",`<span id="mill0"><button class="btn sm" onclick="millUpd(0)">Mark sold out</button></span>`],
+   [`<span class="code">LIN-SOL-0233</span> Sage Linen`,badge("You reported sold out","crit"),badge("BSC option hidden in 4 min","ok")],
+  ])) +
+ card("Blocks BSC holds with you", tbl([{h:"Block"},{h:"Fabric"},{h:"Qty",num:1},{h:"Expires",num:1}],[
+  [`<span class="code">BLK-118</span>`,"Sage Linen","400 m",badge("3 days","crit")],
+  [`<span class="code">BLK-115</span>`,"Moss Flannel","600 m",badge("7 days","warn")]])) +
+ card("Confirm dates · PO-2210 (600 m Moss Flannel)", tbl([{h:"Milestone"},{h:"Requested"},{h:"Your confirmation"}],[
+  ["Loom start","28 Aug",`<span id="tna0"><button class="btn sm primary" onclick="tnaOk(0,'28 Aug')">Confirm 28 Aug</button> <button class="btn sm" onclick="tnaOk(0,'01 Sep — counter-offered')">Offer 01 Sep</button></span>`],
+  ["Dispatch","24 Sep",`<span id="tna1"><button class="btn sm primary" onclick="tnaOk(1,'24 Sep')">Confirm 24 Sep</button></span>`]]));
+function millUpd(i){ document.getElementById("mill"+i).innerHTML = badge("Sold out — sent to BSC","crit"); millRows[3].avail="Sold out"; millRows[3].hidden=true;
+ const now=new Date(); enigmaFeed.unshift([String(now.getHours()).padStart(2,"0")+":"+String(now.getMinutes()).padStart(2,"0"),"OUT","SK-9012 hidden on web + stores — mill reported sold out via portal"]);
+ toast("Availability posted · BSC option auto-hidden · no email needed"); }
+function tnaOk(i,msg){ document.getElementById("tna"+i).innerHTML = badge(msg,"ok"); toast("Date recorded on the PO's TNA — visible to BSC production instantly"); }
+
+
+/* ---------- THE TWO SPINES · explainer ---------- */
+V.spines = () => vhead("Ops Core","How the two spines split",
+ "MTM and RTW are different businesses wearing one brand. They are managed separately here because they are managed separately at BSC — and they meet at only three points.", "both") +
+ `<div class="two">
+  <div class="card"><div class="chead"><h2><span class="spine sp-mtm" style="margin:0">MTM</span> &nbsp;Fabric is the product</h2></div>
+   <div class="tblwrap"><table><tbody>
+    <tr><td><b>What is sold</b></td><td>A fabric, made into a shirt after the customer buys</td></tr>
+    <tr><td><b>The SKU</b></td><td>The fabric itself</td></tr>
+    <tr><td><b>Stock unit</b></td><td><b>Metres</b> ${chip("A-43")}</td></tr>
+    <tr><td><b>Clock</b></td><td>~2 days to make, domestic fabric</td></tr>
+    <tr><td><b>Held stock</b></td><td>Fabric only. No garment stock at all</td></tr>
+    <tr><td><b>Buckets</b></td><td>Core · Non-core (slots) · Bespoke (mill-held)</td></tr>
+    <tr><td><b>Replenished?</b></td><td>Yes — thresholds, coverage, reorder ${chip("A-41")}</td></tr>
+    <tr><td><b>What can go wrong</b></td><td>Fabric runs out, a block expires, a mill sells out mid-order</td></tr>
+   </tbody></table></div></div>
+  <div class="card"><div class="chead"><h2><span class="spine sp-rtw" style="margin:0">RTW</span> &nbsp;Garment × size is the product</h2></div>
+   <div class="tblwrap"><table><tbody>
+    <tr><td><b>What is sold</b></td><td>A finished garment, made 3–4 months before it sells</td></tr>
+    <tr><td><b>The SKU</b></td><td>Style × size (up to 12 sizes per style)</td></tr>
+    <tr><td><b>Stock unit</b></td><td><b>Pieces</b> ${chip("A-43")}</td></tr>
+    <tr><td><b>Clock</b></td><td>90–120 days, plan to shelf</td></tr>
+    <tr><td><b>Held stock</b></td><td>Garments. Fabric is consumed at the factory, not held</td></tr>
+    <tr><td><b>Buckets</b></td><td>Core (replenished) · Non-core (seasonal, once)</td></tr>
+    <tr><td><b>Replenished?</b></td><td>Garments yes, per size. <b>Fabric no</b> — bought per run ${chip("A-41")}</td></tr>
+    <tr><td><b>What can go wrong</b></td><td>Sizes break, a drop slips, options age into dead stock</td></tr>
+   </tbody></table></div></div>
+ </div>` +
+ card("The only three joints — where the spines touch " + chip("A-42"), tbl(
+  [{h:"Joint"},{h:"What is shared"},{h:"What is NOT shared"}],
+  [
+   ["1 · Universal fabric code","The same code identifies a quality in both spines, so history and lookups join.","The stock behind it. MTM holds metres; RTW consumes fabric into garments."],
+   ["2 · Vendor & store masters","One vendor record, one store record, one set of aliases.","Lead times and MOQs are used differently — MTM for reorder, RTW for a run."],
+   ["3 · Launch calendar","One view of what lands when, so drops and swatch dispatches line up.","Everything about how the two get planned and made."],
+  ])) +
+ `<div class="note"><b>The code is shared. The stock is not.</b> One fabric code identifies a quality in both spines so history and lookups join. But MTM holds that quality as sellable metres, while RTW consumes it into garments inside a production run. Nothing deducts across the two. ${chip("A-42")}</div>` +
+ card("Where RTW fabric actually lives in this system", tbl([{h:"Not here"},{h:"But here"}],[
+  ["Fabric Master · metres — MTM only. No RTW fabric row, no threshold, no coverage.","RTW Pre-production → <b>BOM · fabric & trims per run</b>: the fabric for one production run, against its PO, consumed and closed."],
+ ]));
+
+/* ---------- MTM replenishment (metres) ---------- */
+V.mtm_repl = () => vhead("MTM Fabric","Replenishment · metres",
+ "Coverage per fabric, in metres. ROS counts in-stock weeks only, so a stock-out no longer reads as weak demand. Click a code for the full working.", "mtm") +
+ card("Fabrics below or near the coverage line", tbl(
+  [{h:"Fabric"},{h:"Bucket"},{h:"Saleable m",num:1},{h:"True ROS/wk",num:1},{h:"Cover",num:1},{h:"Lead",num:1},{h:"Status"}],
+  [
+   [`<span class="codelink" onclick="fabPick('CTN-PPL-0412')">CTN-PPL-0412</span> White Poplin`,"Core","221","172","9 d","21 d",badge("Reorder proposed · 700 m","crit")],
+   [`<span class="codelink" onclick="fabPick('LIN-SOL-0233')">LIN-SOL-0233</span> Sage Linen`,"Non-core","36","30","8 d","28 d",badge("Mill sold out — no reorder","crit")],
+   [`<span class="codelink" onclick="fabPick('CTN-HND-0107')">CTN-HND-0107</span> Navy Houndstooth`,"Non-core","162","21","54 d","28 d",badge("Healthy","ok")],
+   [`<span class="codelink" onclick="fabPick('CTN-STR-0388')">CTN-STR-0388</span> Butcher Stripe`,"Core","845","92","64 d","21 d",badge("Healthy","ok")],
+   [`<span class="codelink" onclick="fabPick('TM-4408')">TM-4408</span> Sky End-on-End`,"Bespoke","—","12","n/a","n/a",badge("Mill stock — no reorder maths","mut")+chip("A-41")],
+  ])) +
+ `<div class="note">Bespoke rows carry no coverage by design: BSC never buys that fabric ahead, the mill cuts what each order needs. ${chip("A-41")}</div>`;
+
+/* ---------- RTW replenishment (pieces) ---------- */
+V.rtw_repl = () => vhead("RTW Planning","Replenishment · pieces",
+ "Coverage per style AND per size — because a style with two sizes missing is a broken style, not a slow one. Nothing here is measured in metres.", "rtw") +
+ card("Styles below the coverage line, by size", tbl(
+  [{h:"Style · size"},{h:"Weeks in stock (of 8)",num:1},{h:"True ROS/wk",num:1},{h:"Pieces",num:1},{h:"Cover",num:1},{h:"Status"}],
+  [
+   [`<span class="codelink" onclick="go('style360')">RTW-SHT-021</span> Oxford BD · L`,"5","31","38","9 d",badge("Reorder proposed","crit")],
+   [`<span class="codelink" onclick="go('style360')">RTW-SHT-021</span> Oxford BD · M`,"6","28","44","11 d",badge("Reorder proposed","crit")],
+   [`<span class="codelink" onclick="go('style360')">RTW-SHT-021</span> Oxford BD · S`,"8","14","96","48 d",badge("Healthy","ok")],
+   [`<span class="code">RTW-CHN-009</span> Chino Sand · 32`,"8","12","81","47 d",badge("Healthy","ok")],
+   [`<span class="code">RTW-SHT-014</span> Cuban Print · XS`,"8","0.4","102","—",badge("Liquidation proposed","warn")],
+  ])) +
+ `<div class="note"><b>The size trap this fixes.</b> Oxford BD looks like a weak style on a style-level report, because M and L have been out of stock for 3 of the last 8 weeks. Read per size, it is a strong style that has been starved. ${chip("A-05")}</div>`;
+
+/* ---------- RTW non-core lifecycle ---------- */
+V.rtw_life = () => vhead("RTW Planning","Non-core Lifecycle",
+ "Seasonal styles sell once. Two decisions decide whether that was worth it: promote the winners, liquidate the leftovers. Today both are made by eye.", "rtw") +
+ V.two(
+  card("Promote to core — candidates " + chip("A-08"), tbl([{h:"Style"},{h:"ROS vs median",num:1},{h:"In-stock wks",num:1},{h:"Verdict"}],[
+   [`<span class="code">RTW-CHN-009</span> Chino Sand`,"1.8×","4",badge("Proposed","ok")],
+   [`<span class="code">RTW-SHT-019</span> Linen Camp`,"1.3×","5",badge("Below 1.5× line","mut")]])),
+  card("Liquidate — candidates " + chip("A-09"), tbl([{h:"Style"},{h:"Age",num:1},{h:"Sizes complete",num:1},{h:"Verdict"}],[
+   [`<span class="code">RTW-SHT-014</span> Cuban Print`,"131 d","33%",badge("Proposed","crit")],
+   [`<span class="code">RTW-SHT-016</span> Ditsy Print`,"96 d","58%",badge("Watch","warn")]]))) +
+ card("What happens on approval", tbl([{h:"Decision"},{h:"System actions"}],[
+  ["Promote to core","Style joins auto-replenishment · size ratios computed from its clean history · added to the option-count plan"],
+  ["Liquidate","Markdown applied · pull-back raised for store displays · auto-hidden online below the completeness line"]]));
+
+/* ---------- BOM · where RTW fabric actually lives ---------- */
+V.rtw_bom = () => vhead("RTW Pre-production","BOM · fabric & trims per run",
+ "This is where RTW fabric lives — as a line on one production run, against its PO, consumed and closed. It is never a replenished stock item.", "rtw") +
+ `<div class="note"><b>Fabric here is an input, not stock.</b> Bought against a PO, sent to the factory, cut into garments, closed. No threshold, no coverage, no reorder — that behaviour belongs to MTM. ${chip("A-41")}</div>` +
+ card("BOM · RTW-SHT-027 Flannel Overshirt · run of 900 pc", tbl(
+  [{h:"Line"},{h:"Item"},{h:"Qty for this run",num:1},{h:"Source mode"},{h:"PO"},{h:"State"}],
+  [
+   ["Fabric",`<span class="code">FLN-MOS-0512</span> Moss Flannel`,"1,980 m","brand-supplied",`<span class="code">PO-2210</span>`,badge("Loom start confirmed","ok")],
+   ["Trims","Buttons · MOP 18L","10,800 pc","factory pre-sources",`<span class="code">PO-2211</span>`,badge("Ordered","ok")],
+   ["Trims","Interlining · soft","900 m","brand-supplied",`<span class="code">PO-2211</span>`,badge("Reorder proposed","warn")],
+   ["Packaging","Garment covers","900 pc","brand-supplied","—",badge("From stock","ok")],
+  ]), `<span style="font-size:12px;color:var(--muted)">Consumption 2.10 m + 10% flannel brush</span>`) +
+ card("Tech pack for this run", tbl([{h:"Version"},{h:"BOM lines",num:1},{h:"Shared with"},{h:"State"}],[
+  ["TP-v3","14","Tirupur factory · trims vendor",badge("Current","ok")],
+  ["TP-v2","14","Tirupur factory",badge("Superseded","mut")]]));
+
+/* ---------- Style 360 · RTW drill-down ---------- */
+const STYLES = {
+ "RTW-SHT-021":{name:"Oxford Button-Down · White",cat:"RTW Shirts · Standard",fabric:"CTN-OXF-0301",mrp:3900,cogs:1183,
+  launched:"02 May 26",bucket:"Core",vendor:"Tirupur factory",lead:21,
+  sizes:[["S",96,14,1],["M",44,28,0],["L",38,31,0],["XL",71,19,1],["XXL",58,11,1]],
+  ordered:1400, sold:1042},
+ "RTW-CHN-009":{name:"Chino · Sand",cat:"RTW Bottoms · Slim",fabric:"TWL-CHN-0455",mrp:4500,cogs:1417,
+  launched:"14 Mar 26",bucket:"Non-core → promote proposed",vendor:"Bengaluru factory",lead:30,
+  sizes:[["30",64,9,1],["32",81,12,1],["34",77,11,1],["36",52,8,1]],
+  ordered:900, sold:612},
+ "RTW-SHT-014":{name:"Cuban Collar Print",cat:"RTW Shirts · Relaxed",fabric:"VSC-PRT-0209",mrp:3400,cogs:1141,
+  launched:"09 May 26",bucket:"Non-core · liquidation proposed",vendor:"Tirupur factory",lead:21,
+  sizes:[["XS",102,0.4,1],["S",0,0,0],["M",0,0,0],["L",0,0,0],["XXL",88,0.6,1]],
+  ordered:600, sold:410},
+};
+let styleSel="RTW-SHT-021";
+function stylePick(c){ styleSel=c; render(); }
+V.style360 = () => {
+ const st = STYLES[styleSel];
+ const totalPc = st.sizes.reduce((a,s)=>a+s[1],0);
+ const live = st.sizes.filter(s=>s[3]).length;
+ const inStock = st.sizes.filter(s=>s[1]>0).length;
+ const complete = Math.round(inStock/st.sizes.length*100);
+ const sell = Math.round(st.sold/st.ordered*100);
+ return vhead("RTW Pre-production", styleSel+" · "+st.name,
+  "One style, every number in one place — and crucially, broken out per size, because that is the grain the business actually lives at.", "rtw") +
+ `<div class="fabsearch"><div class="fabres">${Object.entries(STYLES).map(([c,x])=>
+   `<button class="fabopt ${c===styleSel?'on':''}" onclick="stylePick('${c}')"><span class="code">${c}</span><span>${x.name}</span><span class="badge b-mut">${x.cat.split(" · ")[0]}</span><span style="color:var(--muted);font-size:11.5px">${x.bucket.split(" ")[0]}</span></button>`).join("")}</div>
+  <div class="fabhint">Showing 3 of ~1,800 styles</div></div>` +
+ `<div class="kpis">
+   <div class="kpi"><b>${totalPc}</b><span>pieces in stock (all sizes)</span></div>
+   <div class="kpi ${complete<60?'crit':complete<80?'warn':'ok'}"><b>${complete}%</b><span>size completeness ${chip("A-04")}</span></div>
+   <div class="kpi ${sell<50?'warn':'ok'}"><b>${sell}%</b><span>sell-through ${chip("A-36")}</span></div>
+   <div class="kpi"><b>₹${(st.mrp-st.cogs).toLocaleString()}</b><span>margin per piece</span></div>
+  </div>` +
+ card("Stock and demand — per size, not per style", tbl(
+  [{h:"Size"},{h:"Pieces",num:1},{h:"True ROS/wk",num:1},{h:"Cover",num:1},{h:"State"}],
+  st.sizes.map(sz=>{
+   const cover = sz[2]>0 ? Math.round(sz[1]/(sz[2]/7)) : null;
+   const fires = cover!==null && cover < st.lead+7;
+   const clean = sz[3];
+   const st2 = sz[1]===0 ? badge("SIZE OUT — nothing to sell","crit")
+     : fires ? badge("Reorder proposed","warn") : badge("Healthy","ok");
+   return [sz[0], String(sz[1]), sz[2]?sz[2].toString():"—",
+    cover!==null?cover+" d":"—",
+    st2 + (clean?"":' <span class="sub2" style="display:inline;color:var(--crit)">3 of 8 weeks excluded — was out of stock</span>'+chip("A-05"))];
+  })),
+  `<span style="font-size:12px;color:var(--muted)">Lead time ${st.lead} d · trigger at ${st.lead+7} d</span>`) +
+ `<div class="note">${live<st.sizes.length
+   ? `<b>${st.sizes.length-live} of ${st.sizes.length} sizes have been out of stock recently</b>, so their weeks are excluded from the ROS. Read at style level this looks like a weak seller; read per size it is a strong style that was starved — the exact failure the record calls “a working style quietly dies”. ${chip("A-05")}`
+   : `Every size has been continuously in stock, so the style-level number and the per-size numbers agree. The gap only opens once a size breaks.`}</div>` +
+ V.two(
+  card("Identity", tbl([{h:"Field"},{h:"Value"}],[
+   ["Design code",`<span class="code">${styleSel}</span>`],["Category / fit",st.cat],["Bucket",st.bucket],
+   ["Fabric used in the run",`<span class="code">${st.fabric}</span> — consumed, not stocked `+chip("A-41")],
+   ["Launched",st.launched],["Made by",st.vendor+" · lead "+st.lead+" d"]])),
+  card("Commercials", tbl([{h:"Field"},{h:"Value",num:1}],[
+   ["MRP","₹"+st.mrp.toLocaleString()],["COGS","₹"+st.cogs.toLocaleString()],
+   ["Margin per piece","₹"+(st.mrp-st.cogs).toLocaleString()],
+   ["Ordered (this drop)",st.ordered+" pc"],["Sold to date",st.sold+" pc"],
+   ["Sell-through",sell+"%"]]))) +
+ card("Decision history", tbl([{h:"When"},{h:"Who"},{h:"Decision"},{h:"Reason"}],[
+  ["today 10:41","system","Reorder proposed for sizes M and L","cover below trigger on both"],
+  ["12 Aug","Planner","No action at style level","style ROS looked weak — we now know why"],
+  [st.launched,"Design","Launched on all channels","mandatory fields complete"]]));
+};
+
+/* ---------- MTM customisation & consumption ---------- */
+V.mtm_custom = () => vhead("MTM · Masters","Customisation & Consumption",
+ "In MTM the customer buys a fabric, then chooses how it is made. This master holds those choices — and the metres each one costs. Every order in the business converts to cloth through the rules on this page.", "mtm") +
+ card("The exchange rate — one order into metres", `<div style="padding:14px 16px">
+   <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px;margin-bottom:12px">
+    <span class="badge b-acc" style="font-size:12px">Customer picks fabric + fit + collar + cuff</span><span style="color:var(--muted)">→</span>
+    <span class="badge b-mut" style="font-size:12px">Fit Smart · 5 questions</span><span style="color:var(--muted)">→</span>
+    <span class="badge b-warn" style="font-size:12px">consumption rule on this page</span><span style="color:var(--muted)">→</span>
+    <span class="badge b-ok" style="font-size:12px">metres reserved in Enigma</span>
+   </div>
+   <div style="display:grid;gap:6px;font-size:13px;border-top:1px dashed var(--line);padding-top:11px">
+    <div><b>Worked example.</b> Standard-fit shirt on Butcher Stripe, cutaway collar, 1-button cuff:</div>
+    <div>Base for Standard fit = <b>1.60 m</b></div>
+    <div>Fabric is a stripe, so the pattern-match uplift applies: 1.60 × 1.08 = <b>1.73 m</b> ${chip("A-31")}</div>
+    <div>Tailor let out the sleeve 1.5 in — inside the ±2 in tolerance, so no recheck: stays <b>1.73 m</b></div>
+    <div style="color:var(--accent)"><b>1.73 m is reserved against the order the moment it is punched.</b></div>
+   </div></div>`) +
+ card("Consumption rules", tbl(
+  [{h:"Applies to"},{h:"Base",num:1},{h:"Uplift"},{h:"Second check"},{h:"State"}],
+  [
+   ["Shirt · Standard fit","1.60 m","+8% checks & stripes "+chip("A-31"),"Tech + Design",badge("Active","ok")],
+   ["Shirt · Slim fit","1.55 m","+8% checks & stripes","Tech + Design",badge("Active","ok")],
+   ["Shirt · Relaxed fit","1.75 m","+8% checks & stripes","Tech + Design",badge("Active","ok")],
+   ["Overshirt","2.10 m","+10% flannel brush","pending "+chip("A-17"),badge("Blocked from go-live","warn")],
+  ]), `<span style="font-size:12px;color:var(--muted)">28 size permutations per design sit under each rule</span>`) +
+ card("Customisation options in the catalogue", tbl(
+  [{h:"Option"},{h:"Type"},{h:"Metre effect"},{h:"Sampled on"},{h:"State"}],
+  [
+   [`<span class="code">MTM-OPT-1101</span> 1-button cuff`,"Cuff","none","all fabrics",badge("Live","ok")],
+   [`<span class="code">MTM-OPT-1104</span> Cutaway collar`,"Collar","none","core fabrics",badge("Live","ok")],
+   [`<span class="code">MTM-OPT-1107</span> Contrast inner collar`,"Collar","+0.10 m","poplin, oxford",badge("Live","ok")],
+   [`<span class="code">MTM-OPT-1109</span> Placket stiffener`,"Placket","none","linen + poplin",badge("V2 comments due","warn")],
+  ])) +
+ card("What breaks downstream if a rule here is wrong", tbl(
+  [{h:"If the rule is…"},{h:"What happens to stock"},{h:"What happens to planning"}],
+  [
+   ["too low","Cutting needs more cloth than was reserved. The shortfall is found at the table, mid-order.","ROS understates real usage, so coverage looks healthier than it is and the reorder fires late."],
+   ["too high","Metres are locked against orders that never needed them. Saleable stock reads lower than reality.","Coverage looks worse than it is, so the system proposes buying fabric BSC already has."],
+   ["missing an uplift","Every checked or striped order quietly under-reserves.","The error compounds across hundreds of orders before anyone notices."],
+  ])) +
+ `<div class="note">This is why an option cannot go live until a second person has checked its rule. The Overshirt above is blocked for exactly that reason. ${chip("A-17")}</div>`;
+
+/* ---------- MTM store order flow lives in the Store App portal ---------- */
+
+/* ---- spine-renamed aliases ---- */
+V.mtm_master  = V.m_fabrics;
+V.mtm_intake  = V.s_intake;
+V.mtm_blocks  = V.s_blocks;
+V.mtm_mills   = V.s_mills;
+V.mtm_swatch  = V.l_swatch;
+V.m_trims     = V.s_trims;
+V.rtw_plan    = V.p_slots;
+V.rtw_sizes   = V.p_sizes;
+V.rtw_style   = V.m_products;
+V.rtw_sample  = V.d_samples;
+V.rtw_qc      = V.pr_qc;
+V.lost        = V.p_lost;
+V.rtw_tna     = () => V.pr_pos() + V.pr_ras().replace(/^<div class="vhead">[\s\S]*?<\/div>\s*/, "");
+
+/* ================= SHELL / ROUTER ================= */
+let portal="ops", view="cockpit";
+function go(v){ view=v; if(["storeapp"].includes(v)) portal="store"; render(); const m=findMod(v); if(m) openMod=m; buildRail(); }
+function findMod(v){ for(const n of NAV){ if(n.groups) for(const g of n.groups){ if(g.kids.some(k=>k[0]===v)) return g.id; } } return null; }
+let openMod="cockpit";
+function buildRail(){
+ const r=$("#rail");
+ if(portal!=="ops"){
+  r.innerHTML=`<div class="sec sh"><div class="sechead">PORTAL</div><div class="mod open"><button class="lvl2" style="color:#fff">${portal==="store"?"Store App":"Vendor & Mill Portal"}</button></div></div>
+   <div class="sec sh"><div class="sechead">SWITCH BACK</div><div class="mod"><button class="lvl2" onclick="setPortal('ops')">← Ops Core</button></div></div>`;
+  return;
+ }
+ r.innerHTML = NAV.map(n=>{
+  if(n.solo) return `<div class="mod"><button class="lvl1 ${view===n.id?"on1":""}" onclick="go('${n.id}')">${n.label}</button></div>`;
+  return `<div class="sec ${n.cls}"><div class="sechead">${n.sec}<span>${n.note}</span></div>` +
+   n.groups.map(g=>{
+    const open = openMod===g.id || g.kids.some(k=>k[0]===view);
+    return `<div class="mod ${open?"open":""}"><button class="lvl2" onclick="tog('${g.id}')">${g.label}<span class="chev">▶</span></button>
+      <div class="sub">${g.kids.map(k=>`<button class="${view===k[0]?"on":""}" onclick="go('${k[0]}')">${k[1]}</button>`).join("")}</div></div>`;
+   }).join("") + `</div>`;
+ }).join("");
+}
+function tog(id){ openMod = openMod===id? null : id; buildRail(); }
+function setPortal(p){ portal=p; view = p==="ops"?"cockpit": p==="store"?"storeapp":"vendorportal"; buildPortals(); buildRail(); render(); }
+function buildPortals(){ $("#portals").innerHTML = PORTALS.map(([id,l])=>`<button class="${portal===id?"on":""}" onclick="setPortal('${id}')">${l}</button>`).join(""); }
+function render(){
+ const v = portal==="store"?"storeapp": portal==="vendor"?"vendorportal": view;
+ $("#content").innerHTML = (V[v]||V.cockpit)() + `<div class="footer-note">BSC Ops Core · DevX Labs × Bombay Shirt Company</div>`;
+ $("#content").scrollTop=0;
+}
+buildPortals(); buildRail(); render();
+
+</script>
+
+</body>
+</html>

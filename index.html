@@ -262,14 +262,14 @@ const NAV = [
 
  {sec:"MTM", note:"Fabric is the product · metres", cls:"mtm", groups:[
    {id:"mtm_m", label:"Masters", kids:[["mtm_master","Fabric Master"],["fab360","Fabric 360 · drill-down"],["mtm_custom","Customisation & Consumption"]]},
-   {id:"mtm_s", label:"Sourcing", kids:[["mtm_intake","Fabric Intake"],["mtm_blocks","Block Register"],["mtm_mills","Bespoke Mill Feeds"]]},
+   {id:"mtm_s", label:"Sourcing", kids:[["mtm_intake","Material Intake"],["mtm_blocks","Block Register"],["mtm_mills","Bespoke Mill Feeds"]]},
    {id:"mtm_p", label:"Planning", kids:[["mtm_repl","Replenishment · metres"]]},
    {id:"mtm_o", label:"Operations", kids:[["mtm_swatch","Swatch Books & Displays"]]},
  ]},
 
  {sec:"RTW", note:"Garment × size is the product · pieces", cls:"rtw", groups:[
    {id:"rtw_m", label:"Masters", kids:[["rtw_style","Style Master"],["style360","Style 360 · drill-down"]]},
-   {id:"rtw_p", label:"Planning", kids:[["rtw_plan","Option Plan & Slots"],["rtw_repl","Replenishment · pieces"],["rtw_sizes","Size Ratios"],["rtw_life","Non-core Lifecycle"]]},
+   {id:"rtw_p", label:"Planning", kids:[["rtw_drops","Drops & Collections"],["rtw_plan","Option Plan & Slots"],["rtw_repl","Replenishment · pieces"],["rtw_sizes","Size Ratios"],["rtw_life","Non-core Lifecycle"]]},
    {id:"rtw_pp", label:"Pre-production", kids:[["rtw_bom","BOM · fabric & trims per run"],["rtw_sample","Sampling Rounds"],["rtw_tna","PO Board · TNA & RAS"],["rtw_qc","QC & Vendor Score"]]},
  ]},
 
@@ -279,7 +279,7 @@ const NAV = [
    {id:"sh_f", label:"Finance", kids:[["f_cogs","Cost per SKU"],["f_margin","Margin Working"],["f_wc","Working Capital"],["f_budget","Budget-Fit Approvals"]]},
    {id:"sh_i", label:"Intelligence", kids:[["i_health","Option Health"],["i_sell","Sell-through"],["i_age","Ageing & Liquidation"],["i_feedback","Store Feedback"]]},
    {id:"sh_x", label:"Integrations", kids:[["x_enigma","Enigma Sync"],["x_shopify","Shopify Sync"],["x_writer","One Writer per Field"]]},
-   {id:"sh_a", label:"Admin", kids:[["a_roles","Roles & Permissions"],["a_rules","Rules & Thresholds"],["a_audit","Audit Log"]]},
+   {id:"sh_a", label:"Admin", kids:[["a_models","Business Models"],["a_roles","Roles & Permissions"],["a_rules","Rules & Thresholds"],["a_audit","Audit Log"]]},
  ]},
 ];
 const PORTALS = [["ops","Ops Core"],["store","Store App"],["vendor","Vendor & Mill Portal"]];
@@ -363,14 +363,14 @@ function decide(i, verdict){
 
 /* ---------- MASTERS ---------- */
 V.m_products = () => vhead("RTW Pre-production","Style Master · pieces","Created once, pushed everywhere. The hard gate: incomplete mandatory fields cannot go live on any channel."+chip("A-03"), "rtw") +
- card("Product master · RTW + MTM options", tbl(
-  [{h:"Design code"},{h:"Name"},{h:"Category / Fit"},{h:"Fabric"},{h:"MRP",num:1},{h:"Lifecycle"},{h:"Channels"}],
+ card("Style master", tbl(
+  [{h:"Design code"},{h:"Name"},{h:"Category / Fit"},{h:"Colorways",num:1},{h:"Fabric"},{h:"MRP",num:1},{h:"Lifecycle"},{h:"Channels"}],
   [
-   [`<span class="code">RTW-SHT-021</span>`,`Oxford Button-Down<span class="sub2">White · launched 02 May 26</span>`,"RTW Shirts · Standard",`<span class="code">CTN-OXF-0301</span>`,"3,900",badge("Live","ok"),"Web · POS · Stores"],
-   [`<span class="code">RTW-CHN-009</span>`,`Chino<span class="sub2">Sand · launched 14 Mar 26</span>`,"RTW Bottoms · Slim",`<span class="code">TWL-CHN-0455</span>`,"4,500",badge("Live","ok"),"Web · POS · Stores"],
-   [`<span class="code">MTM-OPT-1104</span>`,`Cutaway Collar Option<span class="sub2">customisation · all fabrics</span>`,"MTM · Collars","—","+0",badge("Live","ok"),"Stores"],
-   [`<span class="code">RTW-SHT-027</span>`,`Flannel Overshirt<span class="sub2">Moss · drop OCT-26</span>`,"RTW Shirts · Relaxed",`<span class="code">FLN-MOS-0512</span>`,"5,200",badge("Blocked: 2 fields missing","crit")+chip("A-03"),"—"],
-   [`<span class="code">RTW-SHT-014</span>`,`Cuban Collar Print<span class="sub2">seasonal · drop MAY-26</span>`,"RTW Shirts · Relaxed",`<span class="code">VSC-PRT-0209</span>`,"3,400",badge("Liquidation proposed","warn"),"Web · Stores"],
+   [`<span class="code">RTW-SHT-021</span>`,`Oxford Button-Down<span class="sub2">White · launched 02 May 26</span>`,"RTW Shirts · Standard","3",`<span class="code">CTN-OXF-0301</span>`,"3,900",badge("Live","ok"),"Web · POS · Stores"],
+   [`<span class="code">RTW-CHN-009</span>`,`Chino<span class="sub2">Sand · launched 14 Mar 26</span>`,"RTW Bottoms · Slim","2",`<span class="code">TWL-CHN-0455</span>`,"4,500",badge("Live","ok"),"Web · POS · Stores"],
+   [`<span class="code">MTM-OPT-1104</span>`,`Cutaway Collar Option<span class="sub2">customisation · all fabrics</span>`,"MTM · Collars","—","—","+0",badge("Live","ok"),"Stores"],
+   [`<span class="code">RTW-SHT-027</span>`,`Flannel Overshirt<span class="sub2">Moss · drop OCT-26</span>`,"RTW Shirts · Relaxed","1",`<span class="code">FLN-MOS-0512</span>`,"5,200",badge("Blocked: 2 fields missing","crit")+chip("A-03"),"—"],
+   [`<span class="code">RTW-SHT-014</span>`,`Cuban Collar Print<span class="sub2">seasonal · drop MAY-26</span>`,"RTW Shirts · Relaxed","1",`<span class="code">VSC-PRT-0209</span>`,"3,400",badge("Liquidation proposed","warn"),"Web · Stores"],
   ]), `<button class="btn primary sm" onclick="toast('New product wizard — controlled vocabulary enforced at every field')">+ New product</button>`);
 V.m_fabrics = () => vhead("MTM Fabric","Fabric Master · metres",
  "MTM only. Here fabric IS the product, held in metres, with a threshold and a reorder. RTW fabric is not in this list — it lives on a BOM against one production run. Click any underlined code for its Fabric 360."+chip("A-41"), "mtm") +
@@ -647,7 +647,7 @@ V.s_blocks = () => vhead("MTM Sourcing","Block Register","Every block has an own
    badge(b.left+" d", b.left<=3?"crit":b.left<=7?"warn":"ok"), b.owner,
    `<span id="blk${i}"><button class="btn sm primary" onclick="blockAct(${i},'Converted to PO')">Convert to PO</button> <button class="btn sm ghost-crit" onclick="blockAct(${i},'Released — vendor informed')">Release</button></span>`])));
 function blockAct(i,msg){ document.getElementById("blk"+i).innerHTML = badge(msg, msg.startsWith("Conv")?"ok":"mut"); toast(msg+" · recorded"); }
-V.s_intake = () => vhead("MTM Fabric","Fabric Intake","The old ordering sheet as a form: filled once, approved once, then it becomes the Enigma datasheet. No re-typing."+chip("A-12"), "mtm") +
+V.s_intake = () => vhead("MTM · Sourcing","Material Intake","Every raw material — fabric, trims, packaging — enters through one form: filled once, approved once, then it becomes the record and the Enigma datasheet. The ordering sheet retires."+chip("A-12"), "mtm") +
  card("Intake queue", tbl(
   [{h:"Draft"},{h:"Fabric"},{h:"Composition / width"},{h:"Price /m",num:1},{h:"Vendor"},{h:"Stage"}],
   [
@@ -679,12 +679,12 @@ V.s_trims = () => vhead("Shared Record","Trims & Packaging","Same intake, same v
   ]));
 
 /* ---------- DESIGN ---------- */
-V.d_samples = () => vhead("RTW Pre-production","Sampling Rounds","Versioned rounds with dated comments and named approvals. The factory sees only the latest approved version."+chip("A-16"), "rtw") +
+V.d_samples = () => vhead("RTW Pre-production","Sampling Rounds","Four gates — proto, fit, PP, shipment approval — each in versioned rounds with dated comments and named sign-offs. The factory sees only the latest approved version."+chip("A-16"), "rtw") +
  V.two(
-  card("Open samples", tbl([{h:"Style"},{h:"Round"},{h:"With"},{h:"Waiting",num:1},{h:"Stage"}],[
-   [`<span class="code">RTW-SHT-027</span> Flannel Overshirt`,"V3","Factory (Tirupur)","2 d",badge("PP in review","warn")],
-   [`<span class="code">MTM-OPT-1109</span> Placket stiffener`,"V2","Design","1 d",badge("Comments due","warn")],
-   [`<span class="code">RTW-CHN-011</span> Pleated Chino`,"V1","Factory (Bengaluru)","5 d",badge("First sample","mut")],
+  card("Open samples", tbl([{h:"Style"},{h:"Type"},{h:"Round"},{h:"With"},{h:"Waiting",num:1},{h:"Stage"}],[
+   [`<span class="code">RTW-SHT-027</span> Flannel Overshirt`,badge("PP","acc"),"V3","Factory (Tirupur)","2 d",badge("In review","warn")],
+   [`<span class="code">MTM-OPT-1109</span> Placket stiffener`,badge("Fit","mut"),"V2","Design","1 d",badge("Comments due","warn")],
+   [`<span class="code">RTW-CHN-011</span> Pleated Chino`,badge("Proto","mut"),"V1","Factory (Bengaluru)","5 d",badge("First sample","mut")],
   ])),
   card(`Version trail · RTW-SHT-027`, `<div class="vtl">
    <div class="vrow"><span class="vtag">V1</span><div><b>28 Jul</b> — fit sample. 4 comments (sleeve pitch, collar roll). <span class="sub2">Commented by Design · sent to factory 29 Jul</span></div></div>
@@ -949,6 +949,7 @@ V.spines = () => vhead("Ops Core","How the two spines split",
    ["2 · Vendor & store masters","One vendor record, one store record, one set of aliases.","Lead times and MOQs are used differently — MTM for reorder, RTW for a run."],
    ["3 · Launch calendar","One view of what lands when, so drops and swatch dispatches line up.","Everything about how the two get planned and made."],
   ])) +
+ `<div class="note">Both spines run on one engine, configured differently — the settings live in <b>Admin → Business Models</b>. A future category (a new apparel MTM line, footwear, kidswear) onboards by adding a model there, not by rebuilding. <button class="btn sm" onclick="go('a_models')" style="margin-left:6px">See the models</button></div>` +
  `<div class="note"><b>The code is shared. The stock is not.</b> One fabric code identifies a quality in both spines so history and lookups join. But MTM holds that quality as sellable metres, while RTW consumes it into garments inside a production run. Nothing deducts across the two. ${chip("A-42")}</div>` +
  card("Where RTW fabric actually lives in this system", tbl([{h:"Not here"},{h:"But here"}],[
   ["Fabric Master · metres — MTM only. No RTW fabric row, no threshold, no coverage.","RTW Pre-production → <b>BOM · fabric & trims per run</b>: the fabric for one production run, against its PO, consumed and closed."],
@@ -1078,6 +1079,47 @@ V.style360 = () => {
   ["12 Aug","Planner","No action at style level","style ROS looked weak — we now know why"],
   [st.launched,"Design","Launched on all channels","mandatory fields complete"]]));
 };
+
+/* ---------- RTW · Drops & Collections ---------- */
+V.rtw_drops = () => vhead("RTW · Planning","Drops & Collections",
+ "The monthly drop is the season. Every style belongs to one drop; option counts are planned at drop level and tracked against what actually went live. Drop → category → style → colorway → size.", "rtw") +
+ card("Drop calendar", tbl(
+  [{h:"Drop"},{h:"Launch"},{h:"Options planned",num:1},{h:"Live",num:1},{h:"In pipeline",num:1},{h:"Gap",num:1},{h:"State"}],
+  [
+   ["JUL-26","04 Jul","12","12","—","0",badge("Launched","ok")],
+   ["AUG-26","01 Aug","14","13","1","0",badge("Launching","ok")],
+   [`<b>SEP-26</b>`,"05 Sep","15","—","11","4",badge("4 options short","warn")],
+   ["OCT-26","03 Oct","16","—","6","10",badge("Sourcing open","mut")],
+  ])) +
+ card("Inside SEP-26 — by category", tbl(
+  [{h:"Category"},{h:"Planned",num:1},{h:"In pipeline",num:1},{h:"Styles"},{h:"State"}],
+  [
+   ["RTW Shirts","8","6",`<span class="code">RTW-SHT-027</span> Flannel Overshirt · <span class="code">RTW-SHT-028</span> Cord Overshirt · +4`,badge("2 short — sampling","warn")],
+   ["RTW Bottoms","5","4",`<span class="code">RTW-CHN-011</span> Pleated Chino · +3`,badge("1 short — fabric blocked","warn")],
+   ["RTW Knits","2","1",`<span class="code">RTW-KNT-004</span> Polo Navy`,badge("1 short — no fabric yet","crit")],
+  ]), `<button class="btn sm" onclick="go('rtw_plan')">Option plan</button>`) +
+ `<div class="note"><b>Why the gap column matters.</b> A drop that launches short quietly lowers the option count the business planned to sell. The 4 missing SEP-26 options are visible six weeks out — while sourcing can still act — instead of on launch day.</div>` +
+ card("What a style carries in its drop", tbl([{h:"Level"},{h:"Held there"}],[
+  ["Drop","Launch date · option plan per category · swatch & launch-pack dispatch schedule"],
+  ["Style","Fabric, BOM, tech pack, samples, TNA — everything in RTW Pre-production"],
+  ["Colorway","Its own images, listing content and stock"],
+  ["Size (SKU)","Pieces, ROS and coverage — the replenishment grain"]]));
+
+/* ---------- Admin · Business Models ---------- */
+V.a_models = () => vhead("Admin","Business Models",
+ "MTM and RTW are not two hard-coded systems — they are two configurations of one engine. Every screen in this product reads its behaviour from this table.", "both") +
+ card("Configured models", tbl(
+  [{h:"Model"},{h:"Make mode"},{h:"The product is"},{h:"Stock unit"},{h:"Planning grain"},{h:"Replenished"},{h:"State"}],
+  [
+   [`<b>MTM</b>`,"Make to order","The fabric","Metres","Fabric × week",badge("Yes — threshold & coverage","ok"),badge("Active","ok")],
+   [`<b>RTW</b>`,"Make to stock","The garment × size","Pieces","Style × size × week",badge("Garments yes · fabric per run","ok"),badge("Active","ok")],
+  ]), `<button class="btn sm" onclick="toast('A new model is configuration, not code — defined here at onboarding')">+ Add model</button>`) +
+ card("What each setting controls", tbl([{h:"Setting"},{h:"Screens it drives"}],[
+  ["Stock unit","Every number's unit — the metres/pieces split across the app"],
+  ["Planning grain","What replenishment scans: fabrics for MTM, style × size for RTW"],
+  ["Make mode","Whether fabric is held as stock (to-order) or consumed per run on a BOM (to-stock)"],
+  ["Replenished","Whether coverage, thresholds and reorder proposals exist at all"]])) +
+ `<div class="note"><b>Why this table exists.</b> When a third category arrives — apparel MTM in a new garment, footwear, kidswear — it onboards as a row here with its own unit, grain and make mode. The engines, queues, portals and masters are already generic. ${chip("A-41")} ${chip("A-42")}</div>`;
 
 /* ---------- MTM customisation & consumption ---------- */
 V.mtm_custom = () => vhead("MTM · Masters","Customisation & Consumption",

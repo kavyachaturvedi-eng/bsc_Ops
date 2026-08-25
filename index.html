@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<body>
 <title>BSC Ops Core</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
 <style>
@@ -189,6 +187,9 @@ body.hi-assum .chip{background:var(--assum);color:#fff;border-style:solid}
 .footer-note{font-size:11.5px;color:var(--muted);margin-top:26px;border-top:1px solid var(--line);padding-top:10px}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
+</head>
+<body>
+
 
 <div class="app">
   <div class="topbar">
@@ -257,7 +258,6 @@ const ASSUM = {
 /* ================= NAV ================= */
 const NAV = [
  {id:"cockpit", label:"Cockpit", solo:true},
- {id:"spines", label:"How the two spines split", solo:true},
  {id:"proposals", label:"Proposal Queue", solo:true},
 
  {sec:"MTM", note:"Fabric is the product · metres", cls:"mtm", groups:[
@@ -914,46 +914,6 @@ function millUpd(i){ document.getElementById("mill"+i).innerHTML = badge("Sold o
  toast("Availability posted · BSC option auto-hidden · no email needed"); }
 function tnaOk(i,msg){ document.getElementById("tna"+i).innerHTML = badge(msg,"ok"); toast("Date recorded on the PO's TNA — visible to BSC production instantly"); }
 
-
-/* ---------- THE TWO SPINES · explainer ---------- */
-V.spines = () => vhead("Ops Core","How the two spines split",
- "MTM and RTW are different businesses wearing one brand. They are managed separately here because they are managed separately at BSC — and they meet at only three points.", "both") +
- `<div class="two">
-  <div class="card"><div class="chead"><h2><span class="spine sp-mtm" style="margin:0">MTM</span> &nbsp;Fabric is the product</h2></div>
-   <div class="tblwrap"><table><tbody>
-    <tr><td><b>What is sold</b></td><td>A fabric, made into a shirt after the customer buys</td></tr>
-    <tr><td><b>The SKU</b></td><td>The fabric itself</td></tr>
-    <tr><td><b>Stock unit</b></td><td><b>Metres</b> ${chip("A-43")}</td></tr>
-    <tr><td><b>Clock</b></td><td>~2 days to make, domestic fabric</td></tr>
-    <tr><td><b>Held stock</b></td><td>Fabric only. No garment stock at all</td></tr>
-    <tr><td><b>Buckets</b></td><td>Core · Non-core (slots) · Bespoke (mill-held)</td></tr>
-    <tr><td><b>Replenished?</b></td><td>Yes — thresholds, coverage, reorder ${chip("A-41")}</td></tr>
-    <tr><td><b>What can go wrong</b></td><td>Fabric runs out, a block expires, a mill sells out mid-order</td></tr>
-   </tbody></table></div></div>
-  <div class="card"><div class="chead"><h2><span class="spine sp-rtw" style="margin:0">RTW</span> &nbsp;Garment × size is the product</h2></div>
-   <div class="tblwrap"><table><tbody>
-    <tr><td><b>What is sold</b></td><td>A finished garment, made 3–4 months before it sells</td></tr>
-    <tr><td><b>The SKU</b></td><td>Style × size (up to 12 sizes per style)</td></tr>
-    <tr><td><b>Stock unit</b></td><td><b>Pieces</b> ${chip("A-43")}</td></tr>
-    <tr><td><b>Clock</b></td><td>90–120 days, plan to shelf</td></tr>
-    <tr><td><b>Held stock</b></td><td>Garments. Fabric is consumed at the factory, not held</td></tr>
-    <tr><td><b>Buckets</b></td><td>Core (replenished) · Non-core (seasonal, once)</td></tr>
-    <tr><td><b>Replenished?</b></td><td>Garments yes, per size. <b>Fabric no</b> — bought per run ${chip("A-41")}</td></tr>
-    <tr><td><b>What can go wrong</b></td><td>Sizes break, a drop slips, options age into dead stock</td></tr>
-   </tbody></table></div></div>
- </div>` +
- card("The only three joints — where the spines touch " + chip("A-42"), tbl(
-  [{h:"Joint"},{h:"What is shared"},{h:"What is NOT shared"}],
-  [
-   ["1 · Universal fabric code","The same code identifies a quality in both spines, so history and lookups join.","The stock behind it. MTM holds metres; RTW consumes fabric into garments."],
-   ["2 · Vendor & store masters","One vendor record, one store record, one set of aliases.","Lead times and MOQs are used differently — MTM for reorder, RTW for a run."],
-   ["3 · Launch calendar","One view of what lands when, so drops and swatch dispatches line up.","Everything about how the two get planned and made."],
-  ])) +
- `<div class="note">Both spines run on one engine, configured differently — the settings live in <b>Admin → Business Models</b>. A future category (a new apparel MTM line, footwear, kidswear) onboards by adding a model there, not by rebuilding. <button class="btn sm" onclick="go('a_models')" style="margin-left:6px">See the models</button></div>` +
- `<div class="note"><b>The code is shared. The stock is not.</b> One fabric code identifies a quality in both spines so history and lookups join. But MTM holds that quality as sellable metres, while RTW consumes it into garments inside a production run. Nothing deducts across the two. ${chip("A-42")}</div>` +
- card("Where RTW fabric actually lives in this system", tbl([{h:"Not here"},{h:"But here"}],[
-  ["Fabric Master · metres — MTM only. No RTW fabric row, no threshold, no coverage.","RTW Pre-production → <b>BOM · fabric & trims per run</b>: the fabric for one production run, against its PO, consumed and closed."],
- ]));
 
 /* ---------- MTM replenishment (metres) ---------- */
 V.mtm_repl = () => vhead("MTM Fabric","Replenishment · metres",

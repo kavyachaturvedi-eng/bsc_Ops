@@ -92,6 +92,15 @@ td .sub2{display:block;font-size:11.5px;color:var(--muted);margin-top:1px}
 .fabsearch{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:16px}
 .fabsearch input{width:100%;font-family:var(--ui);font-size:13.5px;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--ground);color:var(--ink)}
 .fabsearch input:focus{outline:2px solid var(--accent);outline-offset:1px;background:var(--card)}
+.entry{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:14px 16px}
+.fld{display:flex;flex-direction:column;gap:4px;font-size:11.5px;color:var(--muted);min-width:130px;flex:1}
+.fld.wide{min-width:220px;flex:2}
+.fld input,.fld select{font-family:var(--ui);font-size:13px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--ground);color:var(--ink)}
+.fld input:focus,.fld select:focus{outline:2px solid var(--accent);outline-offset:1px;background:var(--card)}
+.entry .btn{margin-bottom:1px}
+.inlineth{display:inline-flex;gap:6px;align-items:center}
+.inlineth input{width:64px;font-family:var(--ui);font-size:12.5px;padding:4px 6px;border:1px solid var(--accent);border-radius:6px;background:var(--card);color:var(--ink)}
+.formnote{font-size:11.5px;color:var(--muted);padding:0 16px 12px}
 .fabres{display:grid;gap:4px;margin-top:9px;max-height:196px;overflow-y:auto}
 .fabopt{display:grid;grid-template-columns:150px 1fr 110px 120px;gap:10px;align-items:center;text-align:left;padding:7px 10px;border-radius:7px;border:1px solid transparent}
 .fabopt:hover{background:var(--ground);border-color:var(--line)}
@@ -298,6 +307,11 @@ function vhead(crumb,h,p,sp){
  return `<div class="vhead">${tag}<div class="crumb">${crumb}</div><h1>${h}</h1>${p?`<p>${p}</p>`:""}</div>`; }
 function card(title, inner, right=""){ return `<div class="card"><div class="chead"><h2>${title}</h2><div class="right">${right}</div></div>${inner}</div>`; }
 function tbl(cols, rows){ return `<div class="tblwrap"><table><thead><tr>${cols.map(c=>`<th class="${c.num?'num':''}">${c.h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map((c,i)=>`<td class="${cols[i]&&cols[i].num?'num':''}">${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`; }
+/* ---- entry-form helpers (prototype: in-memory, resets on refresh) ---- */
+const fld = (id,label,ph,wide) => `<label class="fld${wide?' wide':''}"><span>${label}</span><input id="${id}" placeholder="${ph||''}" autocomplete="off"></label>`;
+const sel = (id,label,opts) => `<label class="fld"><span>${label}</span><select id="${id}">${opts.map(o=>`<option>${o}</option>`).join("")}</select></label>`;
+const gv = id => { const e=document.getElementById(id); return e ? e.value.trim() : ""; };
+const FORMNOTE = `<div class="formnote">Prototype — entries live in this browser session only. In the real build every entry is validated against controlled vocabulary, approved where a rule requires it, and journalled with who/when/why.</div>`;
 
 /* ================= SHARED DATA ================= */
 const enigmaFeed = [
@@ -375,18 +389,44 @@ V.m_products = () => vhead("RTW Pre-production","Style Master · pieces","Create
    [`<span class="code">RTW-SHT-027</span>`,`Flannel Overshirt<span class="sub2">Moss · drop OCT-26</span>`,"RTW Shirts · Relaxed","1",`<span class="code">FLN-MOS-0512</span>`,"5,200",badge("Blocked: 2 fields missing","crit")+chip("A-03"),"—"],
    [`<span class="code">RTW-SHT-014</span>`,`Cuban Collar Print<span class="sub2">seasonal · drop MAY-26</span>`,"RTW Shirts · Relaxed","1",`<span class="code">VSC-PRT-0209</span>`,"3,400",badge("Liquidation proposed","warn"),"Web · Stores"],
   ]), `<button class="btn primary sm" onclick="toast('New product wizard — controlled vocabulary enforced at every field')">+ New product</button>`);
-V.m_fabrics = () => vhead("MTM Fabric","Fabric Master · metres",
+let thEditing = null;
+function fabOpen(c){ fabSel=c; fabQuery=""; go('fab360'); }
+function thEdit(c){ thEditing=c; render(); }
+function thCancel(){ thEditing=null; render(); }
+function thSave(c){
+ const v = parseFloat(gv("th_"+c));
+ if(isNaN(v)||v<0){ toast("Threshold must be a number ≥ 0"); return; }
+ const old = FABRICS[c].threshold; FABRICS[c].threshold = v; thEditing = null; render();
+ toast(`Threshold ${c}: ${old} → ${v} m · pushed to Enigma · change journalled here (Enigma keeps no threshold history)`);
+}
+V.m_fabrics = () => {
+ const codes = ["CTN-PPL-0412","LIN-SOL-0233","TM-4408","CTN-HND-0107","CTN-STR-0388"];
+ const states = {
+  "CTN-PPL-0412": badge("Reorder proposed","warn"),
+  "LIN-SOL-0233": badge("Low","warn"),
+  "TM-4408": badge("Hidden — mill sold out","crit")+chip("A-13"),
+  "CTN-HND-0107": badge("Live","ok"),
+  "CTN-STR-0388": badge("Live","ok"),
+ };
+ const thCell = c => { const f=FABRICS[c];
+  if(f.physical===null) return "—";
+  if(thEditing===c) return `<span class="inlineth"><input id="th_${c}" value="${f.threshold}"><button class="btn ok sm" onclick="thSave('${c}')">Save</button><button class="btn sm" onclick="thCancel()">✕</button></span>`;
+  return `${f.threshold.toLocaleString("en-IN")} <button class="btn sm" style="padding:2px 7px" title="Threshold is a plan number — Ops Core owns it, pushes it to Enigma, and keeps the history Enigma does not" onclick="thEdit('${c}')">✎</button>`;
+ };
+ return vhead("MTM Fabric","Fabric Master · metres",
  "MTM only. Here fabric IS the product, held in metres, with a threshold and a reorder. RTW fabric is not in this list — it lives on a BOM against one production run. Click any underlined code for its Fabric 360."+chip("A-41"), "mtm") +
- `<div class="note">Stock truth is read from Enigma every 15 minutes and never typed here. ${chip("A-29")}</div>` +
+ `<div class="note">Stock truth is read from Enigma every 15 minutes and never typed here. ${chip("A-29")} The one exception is <b>Threshold</b> — a plan number, not a stock number: Ops Core owns it, edits it here (✎), and pushes it to Enigma with the change journalled. ${chip("A-11")}</div>` +
  card("Fabric master", tbl(
   [{h:"Fabric code"},{h:"Name / composition"},{h:"Bucket"},{h:"Vendor"},{h:"Physical m",num:1},{h:"Reserved",num:1},{h:"Threshold",num:1},{h:"Saleable",num:1},{h:"State"}],
-  [
-   [`<span class="codelink" onclick="go('fab360')" title="Open Fabric 360 — every number in one place">CTN-PPL-0412</span><span class="sub2 code">alias FAB/2019/336</span>`+chip("A-01"),"White Poplin 2/140 · 100% cotton","MTM Core","Arvind Mills","482","61","200","221",badge("Reorder proposed","warn")],
-   [`<span class="code">LIN-SOL-0233</span>`,"Sage Linen · 100% linen","MTM Non-core","Soktas","118","22","60","36",badge("Low","warn")],
-   [`<span class="code">TM-4408</span>`,"Sky End-on-End · Thomas Mason","Bespoke (mill stock)","Thomas Mason","—","—","—","—",badge("Hidden — mill sold out","crit")+chip("A-13")],
-   [`<span class="code">CTN-HND-0107</span>`,"Navy Houndstooth","MTM Non-core","Vardhman","260","18","80","162",badge("Live","ok")],
-   [`<span class="code">CTN-STR-0388</span>`,"Butcher Stripe","MTM Core","Arvind Mills","1,240","95","300","845",badge("Live","ok")],
-  ]));
+  codes.map(c=>{ const f=FABRICS[c]; const besp = f.physical===null;
+   const codeCell = `<span class="codelink" onclick="fabOpen('${c}')" title="Open Fabric 360 — every number in one place">${c}</span>` +
+     (f.alias && f.alias!=="—" ? `<span class="sub2 code">alias ${f.alias}</span>`+chip("A-01") : "");
+   return [codeCell, `${f.name}<span class="sub2">${f.comp}</span>`, f.bucket, f.vendor,
+    besp?"—":f.physical.toLocaleString("en-IN"), besp?"—":f.reserved.toLocaleString("en-IN"),
+    thCell(c), besp?"—":(f.physical-f.reserved-f.threshold).toLocaleString("en-IN"), states[c]||badge("Live","ok")];
+  })),
+  `<button class="btn primary sm" title="Fabric identity is born once, through one door — the intake form" onclick="go('mtm_intake')">+ New fabric → Material Intake</button>`);
+};
 V.m_vendors = () => vhead("Masters","Vendors & Mills","Fabric, trims and packaging vendors on one master — with the numbers that drive every trigger: lead time, MOQ, block window."+chip("A-10")+chip("A-15"), "both") +
  `<div class="note"><b>Why this master has to live here.</b> Enigma's vendor list holds 195 records with id, code, name, type, address, phone, email and categories — and nothing else. <b>No lead time, no minimum order quantity, no currency, no payment terms.</b> Where those values do exist they sit as attributes on the <b>fabric</b>, not the vendor, which is why the same MOQ gets re-entered per fabric today. Every column below except the first three is a field Ops Core must own. ${chip("A-10")}</div>` +
  card("Vendor master", tbl(
@@ -646,7 +686,23 @@ const BLOCKS = [
  {code:"BLK-115", fab:"FLN-MOS-0512 · Moss Flannel", vendor:"Soktas", qty:"600 m", left:7, owner:"Design"},
  {code:"BLK-122", fab:"CTN-CHK-0455 · Glen Check", vendor:"Arvind Mills", qty:"500 m", left:41, owner:"Sourcing"},
 ];
+let blkN = 123;
+function blockAdd(){
+ const fab=gv("bl_fab"), vendor=gv("bl_vendor"), qty=gv("bl_qty"), win=parseInt(gv("bl_win"),10), owner=gv("bl_owner");
+ if(!fab||!qty||isNaN(win)||win<1){ toast("Fabric, quantity and a window in days are mandatory — a block without a countdown is how blocks die today"); return; }
+ BLOCKS.unshift({code:"BLK-"+(blkN++), fab:esc(fab), vendor:esc(vendor), qty:esc(qty)+(/\sm$/.test(qty)?"":" m"), left:win, owner});
+ render(); toast("Block created · countdown running · expiry alerts armed at 14 / 7 / 3 days · owner notified");
+}
 V.s_blocks = () => vhead("MTM Sourcing","Block Register","Every block has an owner and a countdown. Expiry alerts fire at 14, 7 and 3 days — a block can no longer die of forgetfulness."+chip("A-10"), "mtm") +
+ card("New block — replaces the email / WhatsApp handshake",
+  `<div class="entry">` +
+   fld("bl_fab","Fabric","e.g. CTN-CHK-0460 · Prussian Check",1) +
+   fld("bl_vendor","Vendor","e.g. Soktas") +
+   fld("bl_qty","Quantity","e.g. 400 m") +
+   fld("bl_win","Block window (days)","per vendor · e.g. 60") +
+   sel("bl_owner","Owner",["Sourcing","Design"]) +
+   `<button class="btn primary" onclick="blockAdd()">Create block</button>
+  </div>` + FORMNOTE) +
  card("Active blocks", tbl(
   [{h:"Block"},{h:"Fabric"},{h:"Vendor"},{h:"Qty",num:1},{h:"Days left",num:1},{h:"Owner"},{h:""}],
   BLOCKS.map((b,i)=>[
@@ -654,14 +710,34 @@ V.s_blocks = () => vhead("MTM Sourcing","Block Register","Every block has an own
    badge(b.left+" d", b.left<=3?"crit":b.left<=7?"warn":"ok"), b.owner,
    `<span id="blk${i}"><button class="btn sm primary" onclick="blockAct(${i},'Converted to PO')">Convert to PO</button> <button class="btn sm ghost-crit" onclick="blockAct(${i},'Released — vendor informed')">Release</button></span>`])));
 function blockAct(i,msg){ document.getElementById("blk"+i).innerHTML = badge(msg, msg.startsWith("Conv")?"ok":"mut"); toast(msg+" · recorded"); }
+let INTAKE = [
+ {code:"INT-208", name:"Rust Houndstooth", comp:"100% cotton · 150 cm", price:"₹412", vendor:"Vardhman", stage:"wait"},
+ {code:"INT-209", name:"Glen Check", comp:"60/40 cot-linen · 148 cm", price:"₹465", vendor:"Arvind Mills", stage:"draft"},
+ {code:"INT-205", name:"Moss Flannel", comp:"100% cotton brushed", price:"₹398", vendor:"Soktas", stage:"ok"},
+];
+let intakeN = 210;
+function intakeAdd(){
+ const name=gv("in_name"), comp=gv("in_comp"), price=gv("in_price"), vendor=gv("in_vendor"), bucket=gv("in_bucket");
+ if(!name||!comp||!price){ toast("Fabric name, composition and price are mandatory — the form does not save a partial record"); return; }
+ INTAKE.unshift({code:"INT-"+(intakeN++), name, comp, price:"₹"+price.replace(/^₹/,""), vendor, bucket, stage:"wait"});
+ render(); toast("Draft created · awaiting approval. On approval it becomes the record and the Enigma datasheet — nothing is re-typed anywhere.");
+}
+function intakeApprove(c){ const r=INTAKE.find(x=>x.code===c); if(r){ r.stage="ok"; render(); toast(r.code+" approved · datasheet pushed to Enigma against one of its 47 attribute templates"); } }
 V.s_intake = () => vhead("MTM · Sourcing","Material Intake","Every raw material — fabric, trims, packaging — enters through one form: filled once, approved once, then it becomes the record and the Enigma datasheet. The ordering sheet retires."+chip("A-12"), "mtm") +
+ card("New material — one door in",
+  `<div class="entry">` +
+   fld("in_name","Fabric / item name","e.g. Prussian Check",1) +
+   fld("in_comp","Composition · width","e.g. 100% cotton · 148 cm",1) +
+   fld("in_price","Price per metre (₹)","e.g. 435") +
+   sel("in_vendor","Vendor",["Arvind Mills","Soktas","Vardhman","Thomas Mason","Albini","Shree Trims Co","PackRight"]) +
+   sel("in_bucket","Bucket",["MTM Core","MTM Non-core","Bespoke (mill stock)","Trims","Packaging"]) +
+   `<button class="btn primary" onclick="intakeAdd()">Submit for approval</button>
+  </div>` + FORMNOTE) +
  card("Intake queue", tbl(
-  [{h:"Draft"},{h:"Fabric"},{h:"Composition / width"},{h:"Price /m",num:1},{h:"Vendor"},{h:"Stage"}],
-  [
-   [`<span class="code">INT-208</span>`,"Rust Houndstooth","100% cotton · 150 cm","₹412","Vardhman",badge("Awaiting approval → PO","warn")],
-   [`<span class="code">INT-209</span>`,"Glen Check","60/40 cot-linen · 148 cm","₹465","Arvind Mills",badge("Draft — 2 fields missing","mut")],
-   [`<span class="code">INT-205</span>`,"Moss Flannel","100% cotton brushed","₹398","Soktas",badge("Approved · pushed to Enigma","ok")],
-  ]));
+  [{h:"Draft"},{h:"Fabric"},{h:"Composition / width"},{h:"Price /m",num:1},{h:"Vendor"},{h:"Stage"},{h:""}],
+  INTAKE.map(r=>[`<span class="code">${r.code}</span>`, esc(r.name), esc(r.comp), esc(r.price), esc(r.vendor||"—"),
+   r.stage==="ok" ? badge("Approved · pushed to Enigma","ok") : r.stage==="draft" ? badge("Draft — 2 fields missing","mut") : badge("Awaiting approval → PO","warn"),
+   r.stage==="wait" ? `<button class="btn ok sm" onclick="intakeApprove('${r.code}')">Approve</button>` : ""])));
 /* ---------- Auto-PO coverage — read from the live system 26 Aug ---------- */
 V.mtm_autopo = () => vhead("MTM · Sourcing","Auto-PO Coverage",
  "Automatic purchase ordering already exists in Enigma, on a per-fabric flag. It is not confined to domestic core, and it is not rare — it creates most of BSC's purchase orders. This screen shows where it is switched on and where it is not.", "mtm") +
@@ -699,7 +775,26 @@ V.mtm_autopo = () => vhead("MTM · Sourcing","Auto-PO Coverage",
   ]))) +
  card("The live defect worth raising before we build on this", tbl([{h:"Finding"},{h:"Why it matters"},{h:"Ask"}],[
   ["1,762 of the 2,311 auto-PO-enabled fabrics carry no vendor code at all.","Three quarters of the flagged population has nothing to raise a purchase order against. Either the job skips them silently, or it is failing quietly twice a day.","Somebody at BSC should know which, before Ops Core proposes anything on top of it."],
- ]));
+ ])) +
+ card("Propose a flag change — how this should work",
+  `<div class="entry">` +
+   fld("ap_fab","Fabric code","e.g. CTN-PPL-0412") +
+   sel("ap_to","Turn auto-PO",["ON","OFF"]) +
+   fld("ap_why","Reason","e.g. core fabric, stable vendor, clean MOQ",1) +
+   `<button class="btn primary" onclick="apoPropose()">Propose → queue</button>
+  </div>` +
+  (APOPROPS.length ? tbl([{h:"Fabric"},{h:"Change"},{h:"Reason"},{h:"State"}],
+    APOPROPS.map(p=>[`<span class="code">${p.fab}</span>`,"auto-PO → "+p.to, p.why, badge("In Proposal Queue","warn")])) : "") +
+  `<div class="formnote">Today the flag is flipped inside Enigma, silently, with no record of who or why. Here a change is <b>proposed, approved in the queue, then written to Enigma journalled</b> — Ops Core never flips it on its own.</div>`);
+let APOPROPS = [];
+function apoPropose(){
+ const fab=gv("ap_fab"), to=gv("ap_to"), why=gv("ap_why");
+ if(!fab){ toast("Enter a fabric code"); return; }
+ APOPROPS.unshift({fab:esc(fab), to, why:esc(why)||"—"});
+ PROPS.push({sp:"mtm", t:"Auto-PO flag", opt:`<span class="code">${esc(fab)}</span>`, val:"→ "+to,
+  why:`Proposed from Auto-PO Coverage: turn the <span class="code">isAutoPo</span> flag <b>${to}</b>. Reason: ${esc(why)||"not given"}. Nothing is written to Enigma until this is approved — and the write is journalled.`, chips:["A-11"]});
+ pendingProps++; render(); toast("Flag change proposed → Proposal Queue · nothing written to Enigma without a decision");
+}
 
 let millRows = [
  {mill:"Thomas Mason", code:"TM-4408", name:"Sky End-on-End", avail:"Sold out", hidden:true},
@@ -707,13 +802,27 @@ let millRows = [
  {mill:"Albini", code:"AL-2216", name:"Blue Melange", avail:"Available", hidden:false},
  {mill:"Soktas", code:"SK-9012", name:"Ecru Dobby · 214 m", avail:"214 m", hidden:false},
 ];
+function millAdd(){
+ const mill=gv("ml_mill"), code=gv("ml_code"), name=gv("ml_name"), avail=gv("ml_avail");
+ if(!code){ toast("Fabric code is mandatory — availability with no code cannot gate a channel"); return; }
+ millRows.unshift({mill, code:esc(code), name:esc(name), avail, hidden: avail==="Sold out", manual:true});
+ render(); toast(avail==="Sold out" ? "Recorded · option auto-hidden on web + stores the same second" : "Recorded · option sellable · channels open");
+}
 V.s_mills = () => vhead("MTM Sourcing","Bespoke Mill Feeds","Mill availability lands here daily — by portal or parsed email — and the channel gate follows it automatically. The sold-out gap goes to zero."+chip("A-13")+chip("A-14"), "mtm") +
+ card("Manual entry — for a mill that still sends email / WhatsApp",
+  `<div class="entry">` +
+   sel("ml_mill","Mill",["Thomas Mason","Albini","Soktas","Other mill"]) +
+   fld("ml_code","Fabric code","e.g. TM-5102") +
+   fld("ml_name","Fabric name","e.g. Pink Herringbone",1) +
+   sel("ml_avail","Availability",["Available","Sold out","Low — reconfirm before promising"]) +
+   `<button class="btn primary" onclick="millAdd()">Record availability</button>
+  </div>` + `<div class="formnote">Keyed entries are stamped with who typed them — a hand-keyed row is never mistaken for a portal feed. The portal makes this form unnecessary, mill by mill.</div>`) +
  card("Live mill availability", tbl(
   [{h:"Mill"},{h:"Fabric"},{h:"Availability"},{h:"Channel state"},{h:"Last update"}],
   millRows.map(r=>[r.mill, `<span class="code">${r.code}</span> ${r.name}`,
-   r.avail==="Sold out"?badge("Sold out","crit"):badge(r.avail,"ok"),
+   r.avail==="Sold out"?badge("Sold out","crit"):r.avail.startsWith("Low")?badge(r.avail,"warn"):badge(r.avail,"ok"),
    r.hidden?badge("Hidden on web + stores","crit"):badge("Sellable","ok"),
-   "today 08:10"])) ,
+   r.manual?`just now · keyed by Sourcing`:"today 08:10"])) ,
   `<span style="font-size:12px;color:var(--muted)">Try it: mark one sold out in the Vendor Portal →</span>`);
 V.s_trims = () => vhead("Shared Record","Trims & Packaging","Same intake, same vendor master. The Sourcing-vs-factory boundary is explicit on every line."+chip("A-15"), "both") +
  card("Trims stock & triggers", tbl(
@@ -788,10 +897,27 @@ V.l_pullback = () => vhead("Last Mile","Pull-backs","A closed queue, not an emai
   [`<span class="code">PB-201</span>`,"Bandra","3 displays","Sage Linen sold out at mill",badge("2 of 3 confirmed","warn")],
   [`<span class="code">PB-202</span>`,"UB City","1 display","Same",badge("Pending","mut")],
   [`<span class="code">PB-198</span>`,"Indiranagar","312 pc","Liquidation RTW-SHT-014",badge("Complete","ok")]]));
+let SWD = [
+ {code:"SW-0810", contents:"Formal Vol.3 · 24 pages", to:"All 30 stores", conf:"27 / 30", state:badge("3 overdue >72 h","warn")},
+ {code:"SW-0811", contents:"Rust Houndstooth insert", to:"12 stores", conf:"12 / 12", state:badge("Complete","ok")},
+];
+let swN = 812;
+function swAdd(){
+ const contents=gv("sw_contents"), to=gv("sw_to");
+ if(!contents){ toast("Say what is in the dispatch — contents are mandatory"); return; }
+ const n = parseInt(to,10) || 30;
+ SWD.unshift({code:"SW-0"+(swN++), contents:esc(contents), to:esc(to)||"All 30 stores", conf:"0 / "+n, state:badge("Dispatched — awaiting receipt scans","mut")});
+ render(); toast("Dispatch created — each store confirms receipt by scan; anything unconfirmed past 72 h flags itself");
+}
 V.l_swatch = () => vhead("MTM Operations","Swatch Books & Displays","The 34-column sheet becomes receipt-confirmed movements. We finally know which swatches reached which store.", "mtm") +
- card("Dispatches", tbl([{h:"Dispatch"},{h:"Contents"},{h:"To"},{h:"Confirmed"},{h:"State"}],[
-  [`<span class="code">SW-0810</span>`,"Formal Vol.3 · 24 pages","All 30 stores","27 / 30",badge("3 overdue >72 h","warn")],
-  [`<span class="code">SW-0811</span>`,"Rust Houndstooth insert","12 stores","12 / 12",badge("Complete","ok")]]));
+ card("New dispatch",
+  `<div class="entry">` +
+   fld("sw_contents","Contents","e.g. Casual Vol.4 · 18 pages",1) +
+   fld("sw_to","To","e.g. All 30 stores · or: 12 stores") +
+   `<button class="btn primary" onclick="swAdd()">Dispatch</button>
+  </div>` + FORMNOTE) +
+ card("Dispatches", tbl([{h:"Dispatch"},{h:"Contents"},{h:"To"},{h:"Confirmed"},{h:"State"}],
+  SWD.map(d=>[`<span class="code">${d.code}</span>`, d.contents, d.to, d.conf, d.state])));
 
 /* ---------- RETURNS ---------- */
 V.returns = () => vhead("Store Ops","Returns & Service","Slack threads become status cases. The store, the factory and the customer see the same state."+chip("A-32"), "both") +
@@ -1032,18 +1158,26 @@ function tnaOk(i,msg){ document.getElementById("tna"+i).innerHTML = badge(msg,"o
 
 
 /* ---------- MTM replenishment (metres) ---------- */
+let replProposed = {};
+function replPropose(code){
+ if(replProposed[code]) return;
+ const f = FABRICS[code]; replProposed[code] = true;
+ PROPS.push({sp:"mtm", t:"Reorder", opt:`<span class="code">${code}</span> · ${f?f.name:""}`, val:"qty on approval",
+  why:"Raised manually from Replenishment — planner override ahead of the coverage line (festival uplift, a drop landing, a vendor closing for a fortnight). The quantity is sized in the queue, against MOQ and cover target.", chips:["A-06"]});
+ pendingProps++; render(); toast("Manual reorder proposal raised → Proposal Queue");
+}
 V.mtm_repl = () => vhead("MTM Fabric","Replenishment · metres",
  "Coverage per fabric, in metres. ROS counts in-stock weeks only, so a stock-out no longer reads as weak demand. Click a code for the full working.", "mtm") +
  card("Fabrics below or near the coverage line", tbl(
-  [{h:"Fabric"},{h:"Bucket"},{h:"Saleable m",num:1},{h:"True ROS/wk",num:1},{h:"Cover",num:1},{h:"Lead",num:1},{h:"Status"}],
+  [{h:"Fabric"},{h:"Bucket"},{h:"Saleable m",num:1},{h:"True ROS/wk",num:1},{h:"Cover",num:1},{h:"Lead",num:1},{h:"Status"},{h:""}],
   [
-   [`<span class="codelink" onclick="fabPick('CTN-PPL-0412')">CTN-PPL-0412</span> White Poplin`,"Core","221","172","9 d","21 d",badge("Reorder proposed · 700 m","crit")],
-   [`<span class="codelink" onclick="fabPick('LIN-SOL-0233')">LIN-SOL-0233</span> Sage Linen`,"Non-core","36","30","8 d","28 d",badge("Mill sold out — no reorder","crit")],
-   [`<span class="codelink" onclick="fabPick('CTN-HND-0107')">CTN-HND-0107</span> Navy Houndstooth`,"Non-core","162","21","54 d","28 d",badge("Healthy","ok")],
-   [`<span class="codelink" onclick="fabPick('CTN-STR-0388')">CTN-STR-0388</span> Butcher Stripe`,"Core","845","92","64 d","21 d",badge("Healthy","ok")],
-   [`<span class="codelink" onclick="fabPick('TM-4408')">TM-4408</span> Sky End-on-End`,"Bespoke","—","12","n/a","n/a",badge("Mill stock — no reorder maths","mut")+chip("A-41")],
+   [`<span class="codelink" onclick="fabPick('CTN-PPL-0412')">CTN-PPL-0412</span> White Poplin`,"Core","221","172","9 d","21 d",badge("Reorder proposed · 700 m","crit"),`<span style="font-size:11.5px;color:var(--muted)">in queue</span>`],
+   [`<span class="codelink" onclick="fabPick('LIN-SOL-0233')">LIN-SOL-0233</span> Sage Linen`,"Non-core","36","30","8 d","28 d",badge("Mill sold out — no reorder","crit"),"—"],
+   [`<span class="codelink" onclick="fabPick('CTN-HND-0107')">CTN-HND-0107</span> Navy Houndstooth`,"Non-core","162","21","54 d","28 d",badge("Healthy","ok"), replProposed["CTN-HND-0107"]?badge("Proposed","ok"):`<button class="btn sm" onclick="replPropose('CTN-HND-0107')">Propose reorder</button>`],
+   [`<span class="codelink" onclick="fabPick('CTN-STR-0388')">CTN-STR-0388</span> Butcher Stripe`,"Core","845","92","64 d","21 d",badge("Healthy","ok"), replProposed["CTN-STR-0388"]?badge("Proposed","ok"):`<button class="btn sm" onclick="replPropose('CTN-STR-0388')">Propose reorder</button>`],
+   [`<span class="codelink" onclick="fabPick('TM-4408')">TM-4408</span> Sky End-on-End`,"Bespoke","—","12","n/a","n/a",badge("Mill stock — no reorder maths","mut")+chip("A-41"),"—"],
   ])) +
- `<div class="note">Bespoke rows carry no coverage by design: BSC never buys that fabric ahead, the mill cuts what each order needs. ${chip("A-41")}</div>`;
+ `<div class="note">Bespoke rows carry no coverage by design: BSC never buys that fabric ahead, the mill cuts what each order needs. ${chip("A-41")} A planner can also raise a reorder <b>ahead</b> of the line — it still goes through the queue, never straight to a PO.</div>`;
 
 /* ---------- RTW replenishment (pieces) ---------- */
 V.rtw_repl = () => vhead("RTW Planning","Replenishment · pieces",
@@ -1198,6 +1332,36 @@ V.a_models = () => vhead("Admin","Business Models",
  `<div class="note"><b>Why this table exists.</b> When a third category arrives — apparel MTM in a new garment, footwear, kidswear — it onboards as a row here with its own unit, grain and make mode. The engines, queues, portals and masters are already generic. ${chip("A-41")} ${chip("A-42")}</div>`;
 
 /* ---------- MTM customisation & consumption ---------- */
+let CONSUMP = [
+ {name:"Shirt · Standard fit", base:"1.60 m", up:"+8% checks & stripes "+chip("A-31"), chk:"Tech + Design", state:"ok"},
+ {name:"Shirt · Slim fit", base:"1.55 m", up:"+8% checks & stripes", chk:"Tech + Design", state:"ok"},
+ {name:"Shirt · Relaxed fit", base:"1.75 m", up:"+8% checks & stripes", chk:"Tech + Design", state:"ok"},
+ {name:"Overshirt", base:"2.10 m", up:"+10% flannel brush", chk:"pending "+chip("A-17"), state:"blocked"},
+];
+let ruleEditing = null;
+function ruleEdit(i){ ruleEditing=i; render(); }
+function ruleCancel(){ ruleEditing=null; render(); }
+function ruleSave(i){
+ const v = gv("rl_"+i);
+ if(!v || isNaN(parseFloat(v))){ toast("Enter the new base consumption in metres"); return; }
+ const r = CONSUMP[i]; const old = r.base;
+ r.base = parseFloat(v).toFixed(2)+" m"; r.chk = "pending 2nd check "+chip("A-17"); r.state = "draft";
+ ruleEditing = null; render();
+ toast(`Rule saved as draft (${old} → ${r.base}) — blocked from go-live until a second person checks it`);
+}
+let OPTS = [
+ {code:"MTM-OPT-1101", name:"1-button cuff", type:"Cuff", eff:"none", on:"all fabrics", state:"ok"},
+ {code:"MTM-OPT-1104", name:"Cutaway collar", type:"Collar", eff:"none", on:"core fabrics", state:"ok"},
+ {code:"MTM-OPT-1107", name:"Contrast inner collar", type:"Collar", eff:"+0.10 m", on:"poplin, oxford", state:"ok"},
+ {code:"MTM-OPT-1109", name:"Placket stiffener", type:"Placket", eff:"none", on:"linen + poplin", state:"v2"},
+];
+let optN = 1112;
+function optAdd(){
+ const name=gv("op_name"), type=gv("op_type"), eff=gv("op_eff"), on=gv("op_on");
+ if(!name){ toast("Option name is mandatory"); return; }
+ OPTS.unshift({code:"MTM-OPT-"+(optN++), name:esc(name), type, eff, on:esc(on)||"to be sampled", state:"draft"});
+ render(); toast("Option created as draft — it cannot go live until its metre effect passes the second check");
+}
 V.mtm_custom = () => vhead("MTM · Masters","Customisation & Consumption",
  "In MTM the customer buys a fabric, then chooses how it is made. This master holds those choices — and the metres each one costs. Every order in the business converts to cloth through the rules on this page.", "mtm") +
  card("The exchange rate — one order into metres", `<div style="padding:14px 16px">
@@ -1215,21 +1379,25 @@ V.mtm_custom = () => vhead("MTM · Masters","Customisation & Consumption",
     <div style="color:var(--accent)"><b>1.73 m is reserved against the order the moment it is punched.</b></div>
    </div></div>`) +
  card("Consumption rules", tbl(
-  [{h:"Applies to"},{h:"Base",num:1},{h:"Uplift"},{h:"Second check"},{h:"State"}],
-  [
-   ["Shirt · Standard fit","1.60 m","+8% checks & stripes "+chip("A-31"),"Tech + Design",badge("Active","ok")],
-   ["Shirt · Slim fit","1.55 m","+8% checks & stripes","Tech + Design",badge("Active","ok")],
-   ["Shirt · Relaxed fit","1.75 m","+8% checks & stripes","Tech + Design",badge("Active","ok")],
-   ["Overshirt","2.10 m","+10% flannel brush","pending "+chip("A-17"),badge("Blocked from go-live","warn")],
-  ]), `<span style="font-size:12px;color:var(--muted)">28 size permutations per design sit under each rule</span>`) +
+  [{h:"Applies to"},{h:"Base",num:1},{h:"Uplift"},{h:"Second check"},{h:"State"},{h:""}],
+  CONSUMP.map((r,i)=>[r.name,
+   ruleEditing===i ? `<span class="inlineth"><input id="rl_${i}" value="${r.base.replace(/ m$/,'')}"><button class="btn ok sm" onclick="ruleSave(${i})">Save</button><button class="btn sm" onclick="ruleCancel()">✕</button></span>` : r.base,
+   r.up, r.chk,
+   r.state==="ok"?badge("Active","ok"):r.state==="draft"?badge("Draft — awaiting 2nd check","warn"):badge("Blocked from go-live","warn"),
+   ruleEditing===i ? "" : `<button class="btn sm" style="padding:2px 7px" title="A rule change silently changes every future order's metres — so it saves as a draft and waits for a second person" onclick="ruleEdit(${i})">✎</button>`])),
+  `<span style="font-size:12px;color:var(--muted)">28 size permutations per design sit under each rule</span>`) +
  card("Customisation options in the catalogue", tbl(
   [{h:"Option"},{h:"Type"},{h:"Metre effect"},{h:"Sampled on"},{h:"State"}],
-  [
-   [`<span class="code">MTM-OPT-1101</span> 1-button cuff`,"Cuff","none","all fabrics",badge("Live","ok")],
-   [`<span class="code">MTM-OPT-1104</span> Cutaway collar`,"Collar","none","core fabrics",badge("Live","ok")],
-   [`<span class="code">MTM-OPT-1107</span> Contrast inner collar`,"Collar","+0.10 m","poplin, oxford",badge("Live","ok")],
-   [`<span class="code">MTM-OPT-1109</span> Placket stiffener`,"Placket","none","linen + poplin",badge("V2 comments due","warn")],
-  ])) +
+  OPTS.map(o=>[`<span class="code">${o.code}</span> ${o.name}`, o.type, o.eff, o.on,
+   o.state==="ok"?badge("Live","ok"):o.state==="draft"?badge("Draft — rule check pending","warn"):badge("V2 comments due","warn")]))) +
+ card("Add a customisation option",
+  `<div class="entry">` +
+   fld("op_name","Option name","e.g. Club collar",1) +
+   sel("op_type","Type",["Collar","Cuff","Placket","Pocket","Monogram","Other"]) +
+   sel("op_eff","Metre effect",["none","+0.05 m","+0.10 m","+0.15 m","custom — measured at sampling"]) +
+   fld("op_on","Sampled on","e.g. poplin, oxford") +
+   `<button class="btn primary" onclick="optAdd()">Create as draft</button>
+  </div>` + `<div class="formnote">A new option cannot go live until its metre effect passes the second check — the Overshirt rule above is blocked for exactly that reason. ${chip("A-17")}</div>`) +
  card("What breaks downstream if a rule here is wrong", tbl(
   [{h:"If the rule is…"},{h:"What happens to stock"},{h:"What happens to planning"}],
   [
@@ -1289,6 +1457,7 @@ function render(){
 buildPortals(); buildRail(); render();
 
 </script>
+
 
 </body>
 </html>
